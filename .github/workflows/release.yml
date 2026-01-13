@@ -1,0 +1,201 @@
+name: Release - Customer App
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  lint-and-typecheck:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+  build-android-production:
+    name: Build Android Production
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Android Production (EAS)
+        run: eas build --platform android --profile production --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Get Build URL
+        id: build-url
+        run: |
+          BUILD_URL=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].artifacts.buildUrl // empty')
+          echo "ANDROID_BUILD_URL=$BUILD_URL" >> $GITHUB_OUTPUT
+
+    outputs:
+      android_build_url: ${{ steps.build-url.outputs.ANDROID_BUILD_URL }}
+
+  build-ios-production:
+    name: Build iOS Production
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build iOS Production (EAS)
+        run: eas build --platform ios --profile production --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Get Build URL
+        id: build-url
+        run: |
+          BUILD_URL=$(eas build:list --platform ios --limit 1 --json | jq -r '.[0].artifacts.buildUrl // empty')
+          echo "IOS_BUILD_URL=$BUILD_URL" >> $GITHUB_OUTPUT
+
+    outputs:
+      ios_build_url: ${{ steps.build-url.outputs.IOS_BUILD_URL }}
+
+  submit-to-stores:
+    name: Submit to App Stores
+    runs-on: ubuntu-latest
+    needs: [build-android-production, build-ios-production]
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Submit Android to Play Store
+        run: eas submit --platform android --latest --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        continue-on-error: true
+
+      - name: Submit iOS to App Store
+        run: eas submit --platform ios --latest --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        continue-on-error: true
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-android-production, build-ios-production]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MaSoVa Customer App ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## MaSoVa Customer App ${{ steps.version.outputs.VERSION }}
+
+            ### Build Information
+
+            Builds are available on Expo EAS:
+            - **Android APK/AAB**: Check EAS Build dashboard
+            - **iOS IPA**: Check EAS Build dashboard
+
+            ### Installation
+
+            **Android:**
+            - Download from Google Play Store (after review)
+            - Or install APK from EAS Build dashboard
+
+            **iOS:**
+            - Download from App Store (after review)
+            - Or install via TestFlight
+
+            ### What's Changed
+            See commit history for detailed changes.
+
+            ### EAS Build Links
+            - Android: ${{ needs.build-android-production.outputs.android_build_url || 'Check EAS Dashboard' }}
+            - iOS: ${{ needs.build-ios-production.outputs.ios_build_url || 'Check EAS Dashboard' }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: success()
+
+    steps:
+      - name: Send notification
+        run: |
+          echo "Release ${{ github.ref_name }} for MaSoVa Customer App created successfully!"
+          # Add Slack/Discord/Email notification here if needed
