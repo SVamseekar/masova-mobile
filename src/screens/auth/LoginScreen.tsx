@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -17,18 +17,56 @@ import { spacing, borderRadius, typography, colors } from '../../styles';
 import { Button, Input } from '../../components/ui';
 import { AuthStackParamList } from '../../types';
 
+// To enable Google Sign-In, install: npm install @react-native-google-signin/google-signin
+// Then configure as per https://react-native-google-signin.github.io/
+// and set GOOGLE_WEB_CLIENT_ID in your environment/app.config.js
+let GoogleSignin: any = null;
+try {
+  GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
+} catch {
+  // Package not installed yet — Google Sign-In button will show an info alert
+}
+
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const LoginScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleGoogleSignIn = async () => {
+    if (!GoogleSignin) {
+      Alert.alert(
+        'Google Sign-In',
+        'Run: npm install @react-native-google-signin/google-signin\nthen rebuild the app.',
+      );
+      return;
+    }
+    setGoogleLoading(true);
+    setError('');
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken ?? userInfo.idToken;
+      if (!idToken) throw new Error('No ID token returned from Google');
+      await loginWithGoogle(idToken);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      navigation.dispatch(CommonActions.goBack());
+    } catch (err: any) {
+      const msg = err?.message || 'Google sign-in failed. Please try again.';
+      setError(msg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -123,7 +161,9 @@ const LoginScreen: React.FC = () => {
 
           <View style={styles.socialButtons}>
             <TouchableOpacity
-              style={[styles.socialButton, { backgroundColor: theme.colors.surfaceSecondary }]}
+              style={[styles.socialButton, { backgroundColor: theme.colors.surfaceSecondary, opacity: googleLoading ? 0.6 : 1 }]}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || loading}
             >
               <Ionicons name="logo-google" size={20} color="#DB4437" />
             </TouchableOpacity>
