@@ -526,6 +526,7 @@ export type MainTabParamList = {
   Cart: undefined;
   Saved: undefined;
   Profile: undefined;
+  Support: undefined;
 };
 
 export type AuthStackParamList = {
