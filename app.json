@@ -1,19 +1,22 @@
 {
+  "name": "MasovaMobile",
+  "displayName": "MaSoVa",
   "expo": {
-    "name": "masova-mobile",
+    "name": "MaSoVa",
     "slug": "masova-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.masovamobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +24,20 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.masovamobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [],
+    "extra": {
+      "apiUrl": "https://api.masova.app",
+      "agentUrl": "https://agent.masova.app",
+      "eas": {
+        "projectId": "masova-customer"
+      }
+    },
+    "owner": "masova"
   }
 }
