@@ -300,6 +300,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  deliveryOtp?: string;
 }
 
 export interface OrderItem {

@@ -465,6 +465,21 @@ const OrderTrackingScreen: React.FC = () => {
           </Card>
         )}
 
+        {/* Delivery OTP — shown when order is OUT_FOR_DELIVERY so customer can share with driver */}
+        {order.orderType === 'DELIVERY' && currentStatus === 'DISPATCHED' && order.deliveryOtp && (
+          <Card elevation="sm" style={styles.otpCard}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+              Your Delivery OTP
+            </Text>
+            <Text style={[styles.otpCode, { color: theme.colors.brand.primary }]}>
+              {order.deliveryOtp}
+            </Text>
+            <Text style={[styles.otpHint, { color: theme.colors.textSecondary }]}>
+              Share this 4-digit code with your delivery driver to confirm receipt
+            </Text>
+          </Card>
+        )}
+
         {/* Order Items */}
         <Card elevation="sm" style={styles.itemsCard}>
           <View style={styles.itemsHeader}>
@@ -803,6 +818,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  otpCard: { marginBottom: 12 },
+  otpCode: { fontSize: 48, fontWeight: '800', textAlign: 'center', letterSpacing: 8, marginVertical: 12 },
+  otpHint: { fontSize: 13, textAlign: 'center', lineHeight: 18 },
   itemsCard: {
     marginBottom: spacing[4],
   },
