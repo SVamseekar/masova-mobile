@@ -254,8 +254,8 @@ const OrderTrackingScreen: React.FC = () => {
   const driverLon = deliveryInfo?.currentLocation?.longitude ?? deliveryInfo?.driverLon;
   const restLat = deliveryInfo?.restaurantLocation?.latitude ?? deliveryInfo?.restaurantLat;
   const restLon = deliveryInfo?.restaurantLocation?.longitude ?? deliveryInfo?.restaurantLon;
-  const custLat = (order.deliveryAddress as any)?.latitude;
-  const custLon = (order.deliveryAddress as any)?.longitude;
+  const custLat = order.deliveryAddress?.latitude;
+  const custLon = order.deliveryAddress?.longitude;
   const showLiveMap =
     order.orderType === 'DELIVERY' &&
     (currentStatus === 'DISPATCHED' || currentStatus === 'DELIVERED') &&
