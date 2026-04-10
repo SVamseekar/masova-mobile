@@ -52,6 +52,12 @@ export interface OrderStats {
   favoriteOrderType?: string;
 }
 
+export interface CustomerPreferences {
+  allergenAlerts?: string[];
+  dietaryRestrictions?: string[];
+  cuisinePreferences?: string[];
+}
+
 export interface Customer {
   id: string;
   userId: string;
@@ -63,6 +69,7 @@ export interface Customer {
   loyaltyInfo?: LoyaltyInfo;
   orderStats?: OrderStats;
   isActive: boolean;
+  preferences?: CustomerPreferences;
 }
 
 export interface DeliveryAddress {
@@ -189,6 +196,8 @@ export interface MenuItem {
   isRecommended: boolean;
   rating?: number;
   reviewCount?: number;
+  allergens?: string[];
+  allergensDeclared?: boolean;
 }
 
 export interface MenuVariant {
