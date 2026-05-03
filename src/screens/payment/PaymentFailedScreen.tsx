@@ -232,7 +232,7 @@ const PaymentFailedScreen: React.FC = () => {
           variant="primary"
           size="lg"
           style={styles.button}
-          icon="refresh-outline"
+
         />
 
         <TouchableOpacity

@@ -26,7 +26,7 @@ import { Button, Card, QuantitySelector } from '../../components/ui';
 import { RootStackParamList } from '../../types';
 
 // Mock cart data
-const MOCK_CART_ITEMS: CartItem[] = [
+const MOCK_CART_ITEMS: any[] = [
   {
     id: '1',
     menuItem: {
@@ -132,7 +132,7 @@ const CartScreen: React.FC = () => {
     setAppliedCoupon(null);
   };
 
-  const renderCartItem = (item: CartItem) => (
+  const renderCartItem = (item: any) => (
     <Card key={item.id} elevation="sm" style={styles.cartItem}>
       <View style={styles.itemRow}>
         <Image source={{ uri: item.menuItem.imageUrl }} style={styles.itemImage} />
@@ -154,7 +154,7 @@ const CartScreen: React.FC = () => {
             </Text>
           )}
           {item.selectedCustomizations && (
-            Array.from(item.selectedCustomizations.values()).map((options, index) => (
+            Array.from((item.selectedCustomizations as Map<string, {name: string}[]>).values()).map((options, index) => (
               <Text
                 key={index}
                 style={[styles.itemCustomization, { color: theme.colors.text3 }]}
@@ -165,7 +165,7 @@ const CartScreen: React.FC = () => {
           )}
           <View style={styles.itemFooter}>
             <Text style={[styles.itemPrice, { color: theme.colors.text1 }]}>
-              {formatPrice(item.itemTotal)}
+              {formatPrice((item as any).itemTotal ?? (item as any).totalPrice)}
             </Text>
             <QuantitySelector
               value={item.quantity}

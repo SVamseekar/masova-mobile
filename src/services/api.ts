@@ -13,15 +13,12 @@ import { Platform } from 'react-native';
 
 // For iOS Simulator, localhost works. For Android Emulator, use 10.0.2.2
 // For physical devices, use your machine's IP address
+const DELL_IP = '192.168.50.88';
+
 const getBaseUrl = () => {
   if (__DEV__) {
-    // Development
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8080/api'; // Android Emulator
-    }
-    return 'http://localhost:8080/api'; // iOS Simulator
+    return `http://${DELL_IP}:8080/api`; // Dell backend via LAN
   }
-  // Production - replace with your production API URL
   return 'https://api.masova.com/api';
 };
 
@@ -91,7 +88,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
         if (refreshToken) {
-          const response = await axios.post(`${BASE_URL}/users/refresh`, { refreshToken });
+          const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
           const { token } = response.data;
 
           await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
@@ -150,10 +147,10 @@ const getStoredUser = async () => {
 export const authApi = {
   /**
    * Login with email and password
-   * POST /api/users/login (Public, rate limited: 10 req/min)
+   * POST /api/auth/login (Public, rate limited: 10 req/min)
    */
   login: async (email: string, password: string) => {
-    const response = await api.post('/users/login', { email, password });
+    const response = await api.post('/auth/login', { email, password });
     console.log('Login response:', JSON.stringify(response.data, null, 2));
 
     // Backend returns accessToken, not token
@@ -176,10 +173,10 @@ export const authApi = {
 
   /**
    * Register new customer
-   * POST /api/users/register (Public, rate limited: 5 req/min)
+   * POST /api/auth/register (Public, rate limited: 5 req/min)
    */
   register: async (data: { name: string; email: string; phone: string; password: string }) => {
-    const response = await api.post('/users/register', {
+    const response = await api.post('/auth/register', {
       ...data,
       type: 'CUSTOMER',
     });
@@ -188,13 +185,13 @@ export const authApi = {
 
   /**
    * Refresh JWT token
-   * POST /api/users/refresh (Public, rate limited: 20 req/min)
+   * POST /api/auth/refresh (Public, rate limited: 20 req/min)
    */
   refreshToken: async () => {
     const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
     if (!refreshToken) throw new Error('No refresh token');
 
-    const response = await api.post('/users/refresh', { refreshToken });
+    const response = await api.post('/auth/refresh', { refreshToken });
     const { token } = response.data;
     await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
     return response.data;
@@ -202,11 +199,11 @@ export const authApi = {
 
   /**
    * Logout user
-   * POST /api/users/logout (Protected)
+   * POST /api/auth/logout (Protected)
    */
   logout: async () => {
     try {
-      await api.post('/users/logout');
+      await api.post('/auth/logout');
     } finally {
       await clearAuthData();
     }
@@ -219,11 +216,11 @@ export const authApi = {
 
   /**
    * Sign in or register via Google ID token
-   * POST /api/users/auth/google (Public)
+   * POST /api/auth/google (Public)
    * Call this after obtaining a Google idToken from @react-native-google-signin/google-signin
    */
   loginWithGoogle: async (idToken: string) => {
-    const response = await api.post('/users/auth/google', { idToken });
+    const response = await api.post('/auth/google', { idToken });
     const { accessToken, refreshToken, user } = response.data;
     if (!accessToken || !refreshToken || !user) {
       throw new Error('Invalid Google login response: missing required authentication data');
@@ -790,15 +787,15 @@ export const websocketConfig = {
   // Order updates WebSocket
   ordersUrl: __DEV__
     ? Platform.OS === 'android'
-      ? 'ws://10.0.2.2:8083/ws/orders'
-      : 'ws://localhost:8083/ws/orders'
+      ? `ws://${DELL_IP}:8083/ws/orders`
+      : `ws://${DELL_IP}:8083/ws/orders`
     : 'wss://api.masova.com/ws/orders',
 
   // Delivery tracking WebSocket
   deliveryUrl: __DEV__
     ? Platform.OS === 'android'
-      ? 'ws://10.0.2.2:8090/ws/delivery'
-      : 'ws://localhost:8090/ws/delivery'
+      ? `ws://${DELL_IP}:8090/ws/delivery`
+      : `ws://${DELL_IP}:8090/ws/delivery`
     : 'wss://api.masova.com/ws/delivery',
 
   // STOMP topics

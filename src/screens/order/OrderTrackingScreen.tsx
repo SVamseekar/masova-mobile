@@ -336,7 +336,7 @@ const OrderTrackingScreen: React.FC = () => {
             </MapView>
           ) : (
             <LinearGradient
-              colors={[`${'#FFD000'}20`, `${theme.colors.brand.secondary}20`]}
+              colors={[`${'#FFD000'}20`, `${'#3B82F6'}20`]}
               style={styles.mapGradient}
             >
               <Ionicons

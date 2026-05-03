@@ -147,7 +147,7 @@ const PaymentSuccessScreen: React.FC = () => {
             variant="primary"
             size="lg"
             style={styles.button}
-            icon="navigate-outline"
+
           />
 
           <TouchableOpacity
