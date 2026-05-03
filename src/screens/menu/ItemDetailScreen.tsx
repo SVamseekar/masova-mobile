@@ -172,8 +172,8 @@ const ItemDetailScreen: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+      <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.bg }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
           Loading item details...
         </Text>
       </View>
@@ -183,12 +183,12 @@ const ItemDetailScreen: React.FC = () => {
   // Error state
   if (isError) {
     return (
-      <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.bg }]}>
         <Ionicons name="alert-circle-outline" size={64} color={theme.colors.semantic.error} />
-        <Text style={[styles.errorTitle, { color: theme.colors.textPrimary }]}>
+        <Text style={[styles.errorTitle, { color: theme.colors.text1 }]}>
           Failed to load item
         </Text>
-        <Text style={[styles.errorSubtitle, { color: theme.colors.textSecondary }]}>
+        <Text style={[styles.errorSubtitle, { color: theme.colors.text2 }]}>
           {error?.message || 'Please try again'}
         </Text>
         <Button
@@ -201,7 +201,7 @@ const ItemDetailScreen: React.FC = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       {/* Header Image */}
       <View style={styles.imageContainer}>
         <Image source={{ uri: menuItem.imageUrl }} style={styles.image} />
@@ -213,13 +213,13 @@ const ItemDetailScreen: React.FC = () => {
         {/* Header Buttons */}
         <View style={[styles.headerButtons, { top: insets.top + spacing[2] }]}>
           <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: theme.colors.glassSurface }]}
+            style={[styles.headerButton, { backgroundColor: theme.colors.surface2 }]}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name="close" size={24} color={theme.colors.text1} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: theme.colors.glassSurface }]}
+            style={[styles.headerButton, { backgroundColor: theme.colors.surface2 }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setIsFavorite(!isFavorite);
@@ -228,7 +228,7 @@ const ItemDetailScreen: React.FC = () => {
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
               size={24}
-              color={isFavorite ? theme.colors.brand.primary : theme.colors.textPrimary}
+              color={isFavorite ? '#FFD000' : theme.colors.text1}
             />
           </TouchableOpacity>
         </View>
@@ -243,7 +243,7 @@ const ItemDetailScreen: React.FC = () => {
         {/* Item Info */}
         <View style={styles.itemInfo}>
           <View style={styles.titleRow}>
-            <Text style={[styles.itemName, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.itemName, { color: theme.colors.text1 }]}>
               {menuItem.name}
             </Text>
             {menuItem.dietaryInfo?.includes('VEGETARIAN') && (
@@ -256,29 +256,29 @@ const ItemDetailScreen: React.FC = () => {
           <View style={styles.metaRow}>
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={16} color="#F59E0B" />
-              <Text style={[styles.rating, { color: theme.colors.textPrimary }]}>
+              <Text style={[styles.rating, { color: theme.colors.text1 }]}>
                 {menuItem.rating}
               </Text>
-              <Text style={[styles.reviewCount, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.reviewCount, { color: theme.colors.text2 }]}>
                 ({menuItem.reviewCount} reviews)
               </Text>
             </View>
-            <Text style={[styles.prepTime, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.prepTime, { color: theme.colors.text2 }]}>
               <Ionicons name="time-outline" size={14} /> {menuItem.preparationTime} min
             </Text>
           </View>
 
-          <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.description, { color: theme.colors.text2 }]}>
             {menuItem.description}
           </Text>
 
           <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.price, { color: isDark ? '#FFD000' : theme.colors.text1 }]}>
               {formatPrice(menuItem.discountedPrice || menuItem.basePrice)}
             </Text>
             {menuItem.discountedPrice && (
               <>
-                <Text style={[styles.originalPrice, { color: theme.colors.textTertiary }]}>
+                <Text style={[styles.originalPrice, { color: theme.colors.text3 }]}>
                   {formatPrice(menuItem.basePrice)}
                 </Text>
                 <Badge
@@ -294,7 +294,7 @@ const ItemDetailScreen: React.FC = () => {
         {/* Variants */}
         {menuItem.variants.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Size
             </Text>
             <View style={styles.variantsContainer}>
@@ -305,10 +305,10 @@ const ItemDetailScreen: React.FC = () => {
                     styles.variantOption,
                     {
                       backgroundColor: selectedVariant?.id === variant.id
-                        ? `${theme.colors.brand.primary}15`
-                        : theme.colors.surfaceSecondary,
+                        ? `${'#FFD000'}15`
+                        : theme.colors.surface2,
                       borderColor: selectedVariant?.id === variant.id
-                        ? theme.colors.brand.primary
+                        ? '#FFD000'
                         : 'transparent',
                     },
                   ]}
@@ -319,15 +319,15 @@ const ItemDetailScreen: React.FC = () => {
                       styles.variantName,
                       {
                         color: selectedVariant?.id === variant.id
-                          ? theme.colors.brand.primary
-                          : theme.colors.textPrimary,
+                          ? '#FFD000'
+                          : theme.colors.text1,
                       },
                     ]}
                   >
                     {variant.name}
                   </Text>
                   {variant.priceModifier > 0 && (
-                    <Text style={[styles.variantPrice, { color: theme.colors.textSecondary }]}>
+                    <Text style={[styles.variantPrice, { color: theme.colors.text2 }]}>
                       +{formatPrice(variant.priceModifier)}
                     </Text>
                   )}
@@ -341,14 +341,14 @@ const ItemDetailScreen: React.FC = () => {
         {menuItem.customizations.map((customization) => (
           <View key={customization.id} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
                 {customization.name}
               </Text>
               {customization.required && (
                 <Badge label="Required" variant="error" size="sm" />
               )}
               {!customization.required && customization.maxSelections > 1 && (
-                <Text style={[styles.maxText, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.maxText, { color: theme.colors.text2 }]}>
                   Max {customization.maxSelections}
                 </Text>
               )}
@@ -363,7 +363,7 @@ const ItemDetailScreen: React.FC = () => {
                     key={option.id}
                     style={[
                       styles.optionRow,
-                      { borderBottomColor: theme.colors.divider },
+                      { borderBottomColor: theme.colors.border },
                     ]}
                     onPress={() =>
                       handleOptionToggle(customization.id, option, customization.maxSelections)
@@ -375,8 +375,8 @@ const ItemDetailScreen: React.FC = () => {
                           customization.maxSelections === 1 ? styles.radioOuter : styles.checkboxOuter,
                           {
                             borderColor: isSelected
-                              ? theme.colors.brand.primary
-                              : theme.colors.textTertiary,
+                              ? '#FFD000'
+                              : theme.colors.text3,
                           },
                         ]}
                       >
@@ -384,7 +384,7 @@ const ItemDetailScreen: React.FC = () => {
                           <View
                             style={[
                               customization.maxSelections === 1 ? styles.radioInner : styles.checkboxInner,
-                              { backgroundColor: theme.colors.brand.primary },
+                              { backgroundColor: '#FFD000' },
                             ]}
                           >
                             {customization.maxSelections > 1 && (
@@ -393,12 +393,12 @@ const ItemDetailScreen: React.FC = () => {
                           </View>
                         )}
                       </View>
-                      <Text style={[styles.optionName, { color: theme.colors.textPrimary }]}>
+                      <Text style={[styles.optionName, { color: theme.colors.text1 }]}>
                         {option.name}
                       </Text>
                     </View>
                     {option.priceModifier > 0 && (
-                      <Text style={[styles.optionPrice, { color: theme.colors.textSecondary }]}>
+                      <Text style={[styles.optionPrice, { color: theme.colors.text2 }]}>
                         +{formatPrice(option.priceModifier)}
                       </Text>
                     )}
@@ -412,7 +412,7 @@ const ItemDetailScreen: React.FC = () => {
         {/* Allergen Information */}
         {menuItem.allergensDeclared && menuItem.allergens && menuItem.allergens.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Contains Allergens
             </Text>
             <View style={[styles.allergenWarning, { backgroundColor: '#fff8e1', borderColor: '#f9a825' }]}>
@@ -446,7 +446,7 @@ const ItemDetailScreen: React.FC = () => {
         {/* Nutritional Info */}
         {menuItem.nutritionalInfo && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Nutritional Info
             </Text>
             <View style={styles.nutritionGrid}>
@@ -458,12 +458,12 @@ const ItemDetailScreen: React.FC = () => {
               ].map((item) => (
                 <View
                   key={item.label}
-                  style={[styles.nutritionItem, { backgroundColor: theme.colors.surfaceSecondary }]}
+                  style={[styles.nutritionItem, { backgroundColor: theme.colors.surface2 }]}
                 >
-                  <Text style={[styles.nutritionValue, { color: theme.colors.textPrimary }]}>
+                  <Text style={[styles.nutritionValue, { color: theme.colors.text1 }]}>
                     {item.value}
                   </Text>
-                  <Text style={[styles.nutritionLabel, { color: theme.colors.textSecondary }]}>
+                  <Text style={[styles.nutritionLabel, { color: theme.colors.text2 }]}>
                     {item.label}
                   </Text>
                 </View>
@@ -483,7 +483,7 @@ const ItemDetailScreen: React.FC = () => {
           {
             backgroundColor: theme.colors.surface,
             paddingBottom: insets.bottom + spacing[3],
-            borderTopColor: theme.colors.divider,
+            borderTopColor: theme.colors.border,
           },
         ]}
       >
@@ -521,8 +521,8 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     position: 'absolute',
-    left: spacing.screenHorizontal,
-    right: spacing.screenHorizontal,
+    left: spacing.screenPadding,
+    right: spacing.screenPadding,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing[6],
   },
   itemInfo: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     marginBottom: spacing[4],
   },
   titleRow: {
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
   },
   itemName: {
-    fontSize: typography.fontSize.h2,
+    fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.bold,
     flex: 1,
   },
@@ -586,10 +586,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
   },
   reviewCount: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   prepTime: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   description: {
     fontSize: typography.fontSize.body,
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   price: {
-    fontSize: typography.fontSize.h3,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
   },
   originalPrice: {
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   section: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     marginBottom: spacing[6],
   },
   sectionHeader: {
@@ -620,12 +620,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   sectionTitle: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
     marginBottom: spacing[3],
   },
   maxText: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   variantsContainer: {
     flexDirection: 'row',
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
   },
   errorTitle: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
     marginTop: spacing[4],
     textAlign: 'center',
