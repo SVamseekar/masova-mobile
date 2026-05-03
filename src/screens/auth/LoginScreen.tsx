@@ -1,11 +1,6 @@
-/**
- * Login Screen
- */
-
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
@@ -13,18 +8,15 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
-import { spacing, borderRadius, typography, colors } from '../../styles';
+import { spacing, borderRadius, typography } from '../../styles';
 import { Button, Input } from '../../components/ui';
 import { AuthStackParamList } from '../../types';
 
-// To enable Google Sign-In, install: npm install @react-native-google-signin/google-signin
-// Then configure as per https://react-native-google-signin.github.io/
-// and set GOOGLE_WEB_CLIENT_ID in your environment/app.config.js
 let GoogleSignin: any = null;
 try {
   GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
 } catch {
-  // Package not installed yet — Google Sign-In button will show an info alert
+  // Package not installed yet
 }
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
@@ -81,7 +73,6 @@ const LoginScreen: React.FC = () => {
     try {
       await login(email, password);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Dismiss the auth modal and go back to the previous screen
       navigation.dispatch(CommonActions.goBack());
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err?.message || 'Login failed. Please check your credentials.';
@@ -93,21 +84,18 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + spacing[8] }]}>
-          <LinearGradient
-            colors={[colors.brand.primary, colors.brand.primaryDark]}
-            style={styles.logoContainer}
-          >
+          <View style={styles.logoContainer}>
             <Text style={styles.logoText}>M</Text>
-          </LinearGradient>
-          <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Welcome Back</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+          </View>
+          <Text style={[styles.title, { color: theme.colors.text1 }]}>Welcome Back</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.text2 }]}>
             Sign in to continue ordering delicious food
           </Text>
         </View>
@@ -115,8 +103,8 @@ const LoginScreen: React.FC = () => {
         {/* Form */}
         <View style={styles.form}>
           {error ? (
-            <View style={[styles.errorContainer, { backgroundColor: `${theme.colors.semantic.error}15` }]}>
-              <Text style={[styles.errorText, { color: theme.colors.semantic.error }]}>{error}</Text>
+            <View style={[styles.errorContainer, { backgroundColor: `${theme.colors.error}15` }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
             </View>
           ) : null}
 
@@ -139,7 +127,7 @@ const LoginScreen: React.FC = () => {
           />
 
           <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={[styles.forgotPasswordText, { color: theme.colors.brand.primary }]}>
+            <Text style={[styles.forgotPasswordText, { color: '#FFD000' }]}>
               Forgot Password?
             </Text>
           </TouchableOpacity>
@@ -154,21 +142,21 @@ const LoginScreen: React.FC = () => {
 
           {/* Social Login */}
           <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
-            <Text style={[styles.dividerText, { color: theme.colors.textTertiary }]}>or</Text>
-            <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            <Text style={[styles.dividerText, { color: theme.colors.text3 }]}>or</Text>
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
           </View>
 
           <View style={styles.socialButtons}>
             <TouchableOpacity
-              style={[styles.socialButton, { backgroundColor: theme.colors.surfaceSecondary, opacity: googleLoading ? 0.6 : 1 }]}
+              style={[styles.socialButton, { backgroundColor: theme.colors.surface2, opacity: googleLoading ? 0.6 : 1 }]}
               onPress={handleGoogleSignIn}
               disabled={googleLoading || loading}
             >
               <Ionicons name="logo-google" size={20} color="#DB4437" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.socialButton, { backgroundColor: theme.colors.surfaceSecondary }]}
+              style={[styles.socialButton, { backgroundColor: theme.colors.surface2 }]}
             >
               <Ionicons name="logo-facebook" size={20} color="#1877F2" />
             </TouchableOpacity>
@@ -177,11 +165,11 @@ const LoginScreen: React.FC = () => {
 
         {/* Footer */}
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing[4] }]}>
-          <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.footerText, { color: theme.colors.text2 }]}>
             Don't have an account?{' '}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={[styles.footerLink, { color: theme.colors.brand.primary }]}>Sign Up</Text>
+            <Text style={[styles.footerLink, { color: '#FFD000' }]}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -198,7 +186,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
   },
   logoContainer: {
     width: 80,
@@ -207,14 +195,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing[6],
+    backgroundColor: '#FFD000',
   },
   logoText: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#000000',
   },
   title: {
-    fontSize: typography.fontSize.h1,
+    fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
     marginBottom: spacing[2],
   },
@@ -224,7 +213,7 @@ const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
-    padding: spacing.screenHorizontal,
+    padding: spacing.screenPadding,
     paddingTop: spacing[8],
   },
   errorContainer: {
@@ -233,7 +222,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
   },
   errorText: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     textAlign: 'center',
   },
   forgotPassword: {
@@ -242,7 +231,7 @@ const styles = StyleSheet.create({
     marginTop: -spacing[2],
   },
   forgotPasswordText: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     fontWeight: typography.fontWeight.medium,
   },
   dividerContainer: {
@@ -256,7 +245,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: spacing[4],
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   socialButtons: {
     flexDirection: 'row',
