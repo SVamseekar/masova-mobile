@@ -80,20 +80,20 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onPress, badge, danger
         {
           backgroundColor: danger
             ? `${theme.colors.semantic.error}15`
-            : theme.colors.surfaceSecondary,
+            : theme.colors.surface2,
         },
       ]}
     >
       <Ionicons
         name={icon}
         size={20}
-        color={danger ? theme.colors.semantic.error : theme.colors.textSecondary}
+        color={danger ? theme.colors.semantic.error : theme.colors.text2}
       />
     </View>
     <Text
       style={[
         styles.menuLabel,
-        { color: danger ? theme.colors.semantic.error : theme.colors.textPrimary },
+        { color: danger ? theme.colors.semantic.error : theme.colors.text1 },
       ]}
     >
       {label}
@@ -102,7 +102,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onPress, badge, danger
     <Ionicons
       name="chevron-forward"
       size={20}
-      color={theme.colors.textTertiary}
+      color={theme.colors.text3}
     />
   </TouchableOpacity>
 );
@@ -167,16 +167,16 @@ const ProfileScreen: React.FC = () => {
   // Show placeholder if user is not logged in
   if (!isAuthenticated || !user) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing[6] }]}>
-        <Ionicons name="person-circle-outline" size={80} color={theme.colors.textTertiary} />
-        <Text style={[styles.guestTitle, { color: theme.colors.textPrimary, marginTop: spacing[4] }]}>
+      <View style={[styles.container, { backgroundColor: theme.colors.bg, justifyContent: 'center', alignItems: 'center', padding: spacing[6] }]}>
+        <Ionicons name="person-circle-outline" size={80} color={theme.colors.text3} />
+        <Text style={[styles.guestTitle, { color: theme.colors.text1, marginTop: spacing[4] }]}>
           Sign in to view your profile
         </Text>
-        <Text style={[styles.guestSubtitle, { color: theme.colors.textSecondary, marginTop: spacing[2], textAlign: 'center' }]}>
+        <Text style={[styles.guestSubtitle, { color: theme.colors.text2, marginTop: spacing[2], textAlign: 'center' }]}>
           Create an account or sign in to track orders and manage your preferences
         </Text>
         <TouchableOpacity
-          style={[styles.signInButton, { backgroundColor: theme.colors.brand.primary, marginTop: spacing[6] }]}
+          style={[styles.signInButton, { backgroundColor: '#FFD000', marginTop: spacing[6] }]}
           onPress={() => navigation.navigate('Auth')}
         >
           <Text style={[styles.signInButtonText, { color: '#FFFFFF' }]}>Sign In</Text>
@@ -186,34 +186,34 @@ const ProfileScreen: React.FC = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing[4] }]}
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.brand.primary }]}>
+          <View style={[styles.avatar, { backgroundColor: '#FFD000' }]}>
             <Text style={styles.avatarText}>
               {user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
             </Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={[styles.userName, { color: theme.colors.textPrimary }]}>{user.name}</Text>
-            <Text style={[styles.userEmail, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.userName, { color: theme.colors.text1 }]}>{user.name}</Text>
+            <Text style={[styles.userEmail, { color: theme.colors.text2 }]}>
               {user.email}
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.editButton, { backgroundColor: theme.colors.surfaceSecondary }]}
+            style={[styles.editButton, { backgroundColor: theme.colors.surface2 }]}
           >
-            <Ionicons name="pencil" size={18} color={theme.colors.textSecondary} />
+            <Ionicons name="pencil" size={18} color={theme.colors.text2} />
           </TouchableOpacity>
         </View>
 
 
         {/* Loyalty Card */}
-        <View style={[styles.loyaltyCard, { backgroundColor: theme.colors.brand.primary }]}>
+        <View style={[styles.loyaltyCard, { backgroundColor: '#FFD000' }]}>
           {/* Header */}
           <View style={styles.loyaltyHeader}>
             <View>
@@ -282,10 +282,10 @@ const ProfileScreen: React.FC = () => {
         {/* Allergen Alerts */}
         {customerData?.preferences?.allergenAlerts && customerData.preferences.allergenAlerts.length > 0 && (
           <Card elevation="sm" style={styles.menuCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               My Allergen Alerts
             </Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.sectionSubtitle, { color: theme.colors.text2 }]}>
               We'll warn you if any item contains these
             </Text>
             <View style={styles.allergenChips}>
@@ -337,15 +337,15 @@ const ProfileScreen: React.FC = () => {
           />
           <TouchableOpacity style={styles.menuItem} onPress={toggleTheme}>
             <View
-              style={[styles.menuIcon, { backgroundColor: theme.colors.surfaceSecondary }]}
+              style={[styles.menuIcon, { backgroundColor: theme.colors.surface2 }]}
             >
               <Ionicons
                 name={isDark ? 'sunny-outline' : 'moon-outline'}
                 size={20}
-                color={theme.colors.textSecondary}
+                color={theme.colors.text2}
               />
             </View>
-            <Text style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.menuLabel, { color: theme.colors.text1 }]}>
               {isDark ? 'Light Mode' : 'Dark Mode'}
             </Text>
             <View
@@ -353,8 +353,8 @@ const ProfileScreen: React.FC = () => {
                 styles.toggle,
                 {
                   backgroundColor: isDark
-                    ? theme.colors.brand.primary
-                    : theme.colors.surfaceSecondary,
+                    ? '#FFD000'
+                    : theme.colors.surface2,
                 },
               ]}
             >
@@ -415,7 +415,7 @@ const ProfileScreen: React.FC = () => {
         </Card>
 
         {/* App Version */}
-        <Text style={[styles.version, { color: theme.colors.textTertiary }]}>
+        <Text style={[styles.version, { color: theme.colors.text3 }]}>
           Version 1.0.0
         </Text>
 
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: typography.fontSize.h2,
+    fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.bold,
     color: '#FFF',
   },
@@ -454,11 +454,11 @@ const styles = StyleSheet.create({
     marginLeft: spacing[4],
   },
   userName: {
-    fontSize: typography.fontSize.h3,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
   },
   userEmail: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     marginTop: spacing[1],
   },
   editButton: {
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[4],
   },
   statValue: {
-    fontSize: typography.fontSize.h2,
+    fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.bold,
   },
   statLabel: {
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[4],
   },
   guestTitle: {
-    fontSize: typography.fontSize.h3,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
   },
   guestSubtitle: {
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[1],
   },
   loyaltyPoints: {
-    fontSize: typography.fontSize.h1,
+    fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
     color: '#FFFFFF',
   },
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loyaltyStatValue: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
     color: '#FFFFFF',
   },
