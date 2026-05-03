@@ -146,25 +146,22 @@ const ChatScreen: React.FC = () => {
     return (
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAgent]}>
         {!isUser && (
-          <LinearGradient
-            colors={[colors.brand.primary, colors.brand.primaryDark]}
-            style={styles.agentAvatar}
-          >
+          <View style={[styles.agentAvatar, { backgroundColor: '#FFD000' }]}>
             <Text style={styles.agentAvatarText}>M</Text>
-          </LinearGradient>
+          </View>
         )}
         <View
           style={[
             styles.bubble,
             isUser
-              ? [styles.bubbleUser, { backgroundColor: colors.brand.primary }]
-              : [styles.bubbleAgent, { backgroundColor: theme.colors.surfaceSecondary }],
+              ? [styles.bubbleUser, { backgroundColor: '#FFD000' }]
+              : [styles.bubbleAgent, { backgroundColor: theme.colors.surface2 }],
           ]}
         >
           <Text
             style={[
               styles.bubbleText,
-              { color: isUser ? '#fff' : theme.colors.textPrimary },
+              { color: isUser ? '#000000' : theme.colors.text1 },
             ]}
           >
             {item.text}
@@ -176,14 +173,13 @@ const ChatScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={insets.bottom + 60}
     >
       {/* Header */}
-      <LinearGradient
-        colors={[colors.brand.primary, colors.brand.primaryDark]}
-        style={[styles.header, { paddingTop: insets.top + spacing[2] }]}
+      <View
+        style={[styles.header, { paddingTop: insets.top + spacing[2], backgroundColor: '#FFD000' }]}
       >
         <View style={styles.headerContent}>
           <View style={styles.headerAvatar}>
@@ -194,7 +190,7 @@ const ChatScreen: React.FC = () => {
             <Text style={styles.headerSubtitle}>AI assistant · usually instant</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Messages */}
       <FlatList
@@ -209,12 +205,12 @@ const ChatScreen: React.FC = () => {
 
       {/* Typing indicator */}
       {loading && (
-        <View style={[styles.typingRow, { backgroundColor: theme.colors.background }]}>
-          <View style={[styles.agentAvatar, { backgroundColor: colors.brand.primaryDark }]}>
+        <View style={[styles.typingRow, { backgroundColor: theme.colors.bg }]}>
+          <View style={[styles.agentAvatar, { backgroundColor: '#FFD000' }]}>
             <Text style={styles.agentAvatarText}>M</Text>
           </View>
-          <View style={[styles.bubble, styles.bubbleAgent, { backgroundColor: theme.colors.surfaceSecondary }]}>
-            <ActivityIndicator size="small" color={colors.brand.primary} />
+          <View style={[styles.bubble, styles.bubbleAgent, { backgroundColor: theme.colors.surface2 }]}>
+            <ActivityIndicator size="small" color={'#FFD000'} />
           </View>
         </View>
       )}
@@ -225,8 +221,8 @@ const ChatScreen: React.FC = () => {
           styles.inputBar,
           {
             paddingBottom: insets.bottom + spacing[2],
-            backgroundColor: theme.colors.surface,
-            borderTopColor: theme.colors.divider,
+            backgroundColor: theme.colors.surface1,
+            borderTopColor: theme.colors.border,
           },
         ]}
       >
@@ -234,13 +230,13 @@ const ChatScreen: React.FC = () => {
           value={input}
           onChangeText={setInput}
           placeholder="Type a message…"
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={theme.colors.text3}
           multiline
           style={[
             styles.input,
             {
-              backgroundColor: theme.colors.surfaceSecondary,
-              color: theme.colors.textPrimary,
+              backgroundColor: theme.colors.surface2,
+              color: theme.colors.text1,
             },
           ]}
           onSubmitEditing={sendMessage}
@@ -252,7 +248,7 @@ const ChatScreen: React.FC = () => {
           disabled={loading || !input.trim()}
           style={[
             styles.sendBtn,
-            { backgroundColor: input.trim() && !loading ? colors.brand.primary : theme.colors.divider },
+            { backgroundColor: input.trim() && !loading ? '#FFD000' : theme.colors.border },
           ]}
         >
           <Text style={styles.sendBtnText}>↑</Text>
@@ -265,7 +261,7 @@ const ChatScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     paddingBottom: spacing[4],
   },
   headerContent: {
