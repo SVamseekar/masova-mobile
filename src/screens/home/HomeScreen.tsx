@@ -28,7 +28,7 @@ import { StoreSelector } from '../../components/StoreSelector';
 import { RootStackParamList, MenuItem, Category } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - spacing.screenHorizontal * 2;
+const CARD_WIDTH = SCREEN_WIDTH - spacing.screenPadding * 2;
 
 // Mock data for categories
 const CATEGORIES: { id: Category; name: string; iconName: React.ComponentProps<typeof Ionicons>['name']; image: string }[] = [
@@ -119,11 +119,11 @@ const HomeScreen: React.FC = () => {
         <StoreSelector onStoreChange={(store) => console.log('Selected store:', store)} />
       </View>
       <TouchableOpacity
-        style={[styles.notificationButton, { backgroundColor: theme.colors.surfaceSecondary }]}
+        style={[styles.notificationButton, { backgroundColor: theme.colors.surface2 }]}
         onPress={() => navigation.navigate('Notifications')}
       >
-        <Ionicons name="notifications-outline" size={22} color={theme.colors.textPrimary} />
-        <View style={[styles.notificationBadge, { backgroundColor: theme.colors.brand.primary }]} />
+        <Ionicons name="notifications-outline" size={22} color={theme.colors.text1} />
+        <View style={[styles.notificationBadge, { backgroundColor: '#FFD000' }]} />
       </TouchableOpacity>
     </View>
   );
@@ -169,7 +169,7 @@ const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         )}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
+        contentContainerStyle={{ paddingHorizontal: spacing.screenPadding }}
         ItemSeparatorComponent={() => <View style={{ width: spacing[3] }} />}
       />
       <View style={styles.promoIndicators}>
@@ -181,8 +181,8 @@ const HomeScreen: React.FC = () => {
               {
                 backgroundColor:
                   index === currentPromoIndex
-                    ? theme.colors.brand.primary
-                    : theme.colors.divider,
+                    ? '#FFD000'
+                    : theme.colors.border,
                 width: index === currentPromoIndex ? 20 : 8,
               },
             ]}
@@ -195,11 +195,11 @@ const HomeScreen: React.FC = () => {
   const renderCategories = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
           Categories
         </Text>
         <TouchableOpacity>
-          <Text style={[styles.seeAll, { color: theme.colors.brand.primary }]}>
+          <Text style={[styles.seeAll, { color: '#FFD000' }]}>
             See all
           </Text>
         </TouchableOpacity>
@@ -218,13 +218,13 @@ const HomeScreen: React.FC = () => {
             <View
               style={[
                 styles.categoryIcon,
-                { backgroundColor: theme.colors.surfaceSecondary },
+                { backgroundColor: theme.colors.surface2 },
               ]}
             >
-              <Ionicons name={category.iconName} size={22} color={theme.colors.textPrimary} />
+              <Ionicons name={category.iconName} size={22} color={theme.colors.text1} />
             </View>
             <Text
-              style={[styles.categoryName, { color: theme.colors.textPrimary }]}
+              style={[styles.categoryName, { color: theme.colors.text1 }]}
               numberOfLines={1}
             >
               {category.name}
@@ -252,13 +252,13 @@ const HomeScreen: React.FC = () => {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
             Recommended for You
           </Text>
         </View>
         {loadingRecommended ? (
           <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
               Loading recommendations...
             </Text>
           </View>
@@ -271,7 +271,7 @@ const HomeScreen: React.FC = () => {
         >
           <Card
             elevation="sm"
-            padding="none"
+            padding={0}
             style={styles.menuCard}
           >
             <Image source={{ uri: item.imageUrl }} style={styles.menuImage} />
@@ -288,25 +288,25 @@ const HomeScreen: React.FC = () => {
               </View>
               <View style={styles.menuHeader}>
                 <Text
-                  style={[styles.menuName, { color: theme.colors.textPrimary }]}
+                  style={[styles.menuName, { color: theme.colors.text1 }]}
                   numberOfLines={1}
                 >
                   {item.name}
                 </Text>
               </View>
               <Text
-                style={[styles.menuDescription, { color: theme.colors.textSecondary }]}
+                style={[styles.menuDescription, { color: theme.colors.text2 }]}
                 numberOfLines={2}
               >
                 {item.description}
               </Text>
               <View style={styles.menuFooter}>
                 <View style={styles.priceContainer}>
-                  <Text style={[styles.price, { color: theme.colors.textPrimary }]}>
+                  <Text style={[styles.price, { color: theme.colors.text1 }]}>
                     {formatPrice(item.discountedPrice || item.basePrice!)}
                   </Text>
                   {item.discountedPrice && (
-                    <Text style={[styles.originalPrice, { color: theme.colors.textTertiary }]}>
+                    <Text style={[styles.originalPrice, { color: theme.colors.text3 }]}>
                       {formatPrice(item.basePrice!)}
                     </Text>
                   )}
@@ -314,17 +314,17 @@ const HomeScreen: React.FC = () => {
                 <View style={styles.menuMeta}>
                   <View style={styles.ratingContainer}>
                     <Ionicons name="star" size={14} color="#F59E0B" />
-                    <Text style={[styles.rating, { color: theme.colors.textPrimary }]}>
+                    <Text style={[styles.rating, { color: theme.colors.text1 }]}>
                       {item.rating}
                     </Text>
                   </View>
-                  <Text style={[styles.prepTime, { color: theme.colors.textSecondary }]}>
+                  <Text style={[styles.prepTime, { color: theme.colors.text2 }]}>
                     {item.preparationTime} min
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: theme.colors.brand.primary }]}
+                style={[styles.addButton, { backgroundColor: '#FFD000' }]}
               >
                 <Text style={styles.addButtonText}>ADD</Text>
               </TouchableOpacity>
@@ -338,7 +338,7 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       {renderHeader()}
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     paddingBottom: spacing[2],
   },
   headerLeft: {
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   searchContainer: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     marginTop: spacing[3],
     marginBottom: spacing[4],
   },
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     padding: spacing[4],
   },
   promoTitle: {
-    fontSize: typography.fontSize.h3,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
     color: '#FFFFFF',
   },
@@ -438,11 +438,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     marginBottom: spacing[4],
   },
   sectionTitle: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
   },
   seeAll: {
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.medium,
   },
   categoriesScroll: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     gap: spacing[4],
   },
   categoryItem: {
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing[2],
@@ -469,12 +469,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   categoryName: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     fontWeight: typography.fontWeight.medium,
     textAlign: 'center',
   },
   menuCard: {
-    marginHorizontal: spacing.screenHorizontal,
+    marginHorizontal: spacing.screenPadding,
     marginBottom: spacing[4],
     overflow: 'hidden',
   },
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[1],
   },
   menuName: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
     flex: 1,
   },
@@ -517,8 +517,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   menuDescription: {
-    fontSize: typography.fontSize.bodySmall,
-    lineHeight: typography.lineHeight.bodySmall,
+    fontSize: typography.fontSize.bodySm,
+    lineHeight: typography.lineHeight.bodySm,
     marginBottom: spacing[3],
   },
   menuFooter: {
@@ -532,11 +532,11 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   price: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
   },
   originalPrice: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     textDecorationLine: 'line-through',
   },
   menuMeta: {
@@ -550,11 +550,11 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   rating: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     fontWeight: typography.fontWeight.semibold,
   },
   prepTime: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   addButton: {
     position: 'absolute',
@@ -566,8 +566,8 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   addButtonText: {
-    color: '#FFFFFF',
-    fontSize: typography.fontSize.buttonSmall,
+    color: '#000000',
+    fontSize: typography.fontSize.label,
     fontWeight: typography.fontWeight.bold,
   },
   loadingContainer: {
