@@ -162,8 +162,8 @@ const OrderTrackingScreen: React.FC = () => {
                     styles.progressDot,
                     {
                       backgroundColor: isCompleted || isCurrent
-                        ? theme.colors.brand.primary
-                        : theme.colors.divider,
+                        ? '#FFD000'
+                        : theme.colors.border,
                     },
                   ]}
                 >
@@ -180,8 +180,8 @@ const OrderTrackingScreen: React.FC = () => {
                       styles.progressLine,
                       {
                         backgroundColor: isCompleted
-                          ? theme.colors.brand.primary
-                          : theme.colors.divider,
+                          ? '#FFD000'
+                          : theme.colors.border,
                       },
                     ]}
                   />
@@ -192,8 +192,8 @@ const OrderTrackingScreen: React.FC = () => {
                   styles.progressLabel,
                   {
                     color: isCompleted || isCurrent
-                      ? theme.colors.textPrimary
-                      : theme.colors.textTertiary,
+                      ? theme.colors.text1
+                      : theme.colors.text3,
                     fontWeight: isCurrent
                       ? typography.fontWeight.semibold
                       : typography.fontWeight.regular,
@@ -212,9 +212,9 @@ const OrderTrackingScreen: React.FC = () => {
   // Show loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.brand.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.bg }]}>
+        <ActivityIndicator size="large" color={'#FFD000'} />
+        <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
           Loading order details...
         </Text>
       </View>
@@ -224,12 +224,12 @@ const OrderTrackingScreen: React.FC = () => {
   // Show error state
   if (error || !order) {
     return (
-      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.bg }]}>
         <Ionicons name="alert-circle-outline" size={64} color={theme.colors.semantic.error} />
-        <Text style={[styles.errorText, { color: theme.colors.textPrimary }]}>
+        <Text style={[styles.errorText, { color: theme.colors.text1 }]}>
           Unable to load order
         </Text>
-        <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>
+        <Text style={[styles.errorSubtext, { color: theme.colors.text2 }]}>
           {error?.message || 'Order not found'}
         </Text>
         <Button
@@ -262,19 +262,19 @@ const OrderTrackingScreen: React.FC = () => {
     !!driverLat && !!driverLon;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="close" size={24} color={theme.colors.text1} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={[styles.orderNumber, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.orderNumber, { color: theme.colors.text2 }]}>
             Order #{order.orderNumber || orderId.slice(-8).toUpperCase()}
           </Text>
         </View>
         <TouchableOpacity style={styles.helpButton}>
-          <Ionicons name="help-circle-outline" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="help-circle-outline" size={24} color={theme.colors.text1} />
         </TouchableOpacity>
       </View>
 
@@ -283,7 +283,7 @@ const OrderTrackingScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Map/Status Visual */}
-        <View style={[styles.mapContainer, { backgroundColor: theme.colors.surfaceSecondary }]}>
+        <View style={[styles.mapContainer, { backgroundColor: theme.colors.surface2 }]}>
           {showLiveMap ? (
             <MapView
               provider={PROVIDER_GOOGLE}
@@ -303,7 +303,7 @@ const OrderTrackingScreen: React.FC = () => {
               <Marker
                 coordinate={{ latitude: driverLat!, longitude: driverLon! }}
                 title="Driver"
-                pinColor={theme.colors.brand.primary}
+                pinColor={'#FFD000'}
               />
               {/* Restaurant pin — orange */}
               {restLat != null && restLon != null && (
@@ -328,7 +328,7 @@ const OrderTrackingScreen: React.FC = () => {
                     { latitude: driverLat!, longitude: driverLon! },
                     { latitude: custLat, longitude: custLon },
                   ]}
-                  strokeColor={theme.colors.brand.primary}
+                  strokeColor={'#FFD000'}
                   strokeWidth={3}
                   lineDashPattern={[8, 4]}
                 />
@@ -336,15 +336,15 @@ const OrderTrackingScreen: React.FC = () => {
             </MapView>
           ) : (
             <LinearGradient
-              colors={[`${theme.colors.brand.primary}20`, `${theme.colors.brand.secondary}20`]}
+              colors={[`${'#FFD000'}20`, `${theme.colors.brand.secondary}20`]}
               style={styles.mapGradient}
             >
               <Ionicons
                 name={orderStages[displayStageIndex]?.icon || 'restaurant'}
                 size={64}
-                color={theme.colors.brand.primary}
+                color={'#FFD000'}
               />
-              <Text style={[styles.mapPlaceholder, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.mapPlaceholder, { color: theme.colors.text2 }]}>
                 {currentStatus === 'COMPLETED'
                   ? 'Ready for pickup!'
                   : currentStatus === 'SERVED'
@@ -375,14 +375,14 @@ const OrderTrackingScreen: React.FC = () => {
         <Card elevation="md" style={styles.etaCard}>
           <View style={styles.etaContent}>
             <View>
-              <Text style={[styles.etaLabel, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.etaLabel, { color: theme.colors.text2 }]}>
                 {(currentStatus === 'COMPLETED' || currentStatus === 'SERVED' || currentStatus === 'DELIVERED')
                   ? 'Order Complete'
                   : order.orderType === 'DELIVERY'
                     ? 'Estimated Arrival'
                     : 'Estimated Ready Time'}
               </Text>
-              <Text style={[styles.etaTime, { color: theme.colors.textPrimary }]}>
+              <Text style={[styles.etaTime, { color: theme.colors.text1 }]}>
                 {(currentStatus === 'COMPLETED' || currentStatus === 'SERVED' || currentStatus === 'DELIVERED')
                   ? 'Done!'
                   : eta > 0
@@ -403,7 +403,7 @@ const OrderTrackingScreen: React.FC = () => {
 
         {/* Progress */}
         <Card elevation="sm" style={styles.progressCard}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
             Order Status
           </Text>
           {renderProgressBar()}
@@ -412,51 +412,51 @@ const OrderTrackingScreen: React.FC = () => {
         {/* Driver Info - Only show for delivery orders when dispatched */}
         {order.orderType === 'DELIVERY' && (currentStatus === 'DISPATCHED' || currentStatus === 'DELIVERED') && (
           <Card elevation="sm" style={styles.driverCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Delivery Partner
             </Text>
             {deliveryLoading ? (
               <View style={styles.driverLoading}>
-                <ActivityIndicator size="small" color={theme.colors.brand.primary} />
-                <Text style={[styles.driverLoadingText, { color: theme.colors.textSecondary }]}>
+                <ActivityIndicator size="small" color={'#FFD000'} />
+                <Text style={[styles.driverLoadingText, { color: theme.colors.text2 }]}>
                   Loading driver info...
                 </Text>
               </View>
             ) : deliveryInfo ? (
               <View style={styles.driverInfo}>
-                <View style={[styles.driverAvatar, { backgroundColor: theme.colors.surfaceSecondary }]}>
-                  <Ionicons name="person" size={28} color={theme.colors.textSecondary} />
+                <View style={[styles.driverAvatar, { backgroundColor: theme.colors.surface2 }]}>
+                  <Ionicons name="person" size={28} color={theme.colors.text2} />
                 </View>
                 <View style={styles.driverDetails}>
-                  <Text style={[styles.driverName, { color: theme.colors.textPrimary }]}>
+                  <Text style={[styles.driverName, { color: theme.colors.text1 }]}>
                     {deliveryInfo.driverName}
                   </Text>
                   <View style={styles.driverRating}>
-                    <Ionicons name="bicycle" size={14} color={theme.colors.brand.primary} />
-                    <Text style={[styles.driverRatingText, { color: theme.colors.textSecondary }]}>
+                    <Ionicons name="bicycle" size={14} color={'#FFD000'} />
+                    <Text style={[styles.driverRatingText, { color: theme.colors.text2 }]}>
                       {deliveryInfo.distanceKm ? `${deliveryInfo.distanceKm.toFixed(1)} km away` : 'On the way'}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.driverActions}>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.colors.surfaceSecondary }]}
+                    style={[styles.actionButton, { backgroundColor: theme.colors.surface2 }]}
                     onPress={handleCallDriver}
                   >
-                    <Ionicons name="call" size={20} color={theme.colors.brand.primary} />
+                    <Ionicons name="call" size={20} color={'#FFD000'} />
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <View style={styles.driverInfo}>
-                <View style={[styles.driverAvatar, { backgroundColor: theme.colors.surfaceSecondary }]}>
-                  <Ionicons name="person" size={28} color={theme.colors.textSecondary} />
+                <View style={[styles.driverAvatar, { backgroundColor: theme.colors.surface2 }]}>
+                  <Ionicons name="person" size={28} color={theme.colors.text2} />
                 </View>
                 <View style={styles.driverDetails}>
-                  <Text style={[styles.driverName, { color: theme.colors.textPrimary }]}>
+                  <Text style={[styles.driverName, { color: theme.colors.text1 }]}>
                     Driver Assigned
                   </Text>
-                  <Text style={[styles.driverRatingText, { color: theme.colors.textSecondary }]}>
+                  <Text style={[styles.driverRatingText, { color: theme.colors.text2 }]}>
                     Picking up your order
                   </Text>
                 </View>
@@ -468,13 +468,13 @@ const OrderTrackingScreen: React.FC = () => {
         {/* Delivery OTP — shown when order is OUT_FOR_DELIVERY so customer can share with driver */}
         {order.orderType === 'DELIVERY' && currentStatus === 'DISPATCHED' && order.deliveryOtp && (
           <Card elevation="sm" style={styles.otpCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Your Delivery OTP
             </Text>
-            <Text style={[styles.otpCode, { color: theme.colors.brand.primary }]}>
+            <Text style={[styles.otpCode, { color: '#FFD000' }]}>
               {order.deliveryOtp}
             </Text>
-            <Text style={[styles.otpHint, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.otpHint, { color: theme.colors.text2 }]}>
               Share this 4-digit code with your delivery driver to confirm receipt
             </Text>
           </Card>
@@ -483,35 +483,35 @@ const OrderTrackingScreen: React.FC = () => {
         {/* Order Items */}
         <Card elevation="sm" style={styles.itemsCard}>
           <View style={styles.itemsHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Order Items
             </Text>
-            <Text style={[styles.itemCount, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.itemCount, { color: theme.colors.text2 }]}>
               {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'}
             </Text>
           </View>
           <View style={styles.itemsList}>
             {order.items?.map((item, index) => (
               <View key={item.id || index} style={styles.itemRow}>
-                <Text style={[styles.itemQty, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.itemQty, { color: theme.colors.text2 }]}>
                   {item.quantity}x
                 </Text>
                 <View style={styles.itemDetails}>
-                  <Text style={[styles.itemName, { color: theme.colors.textPrimary }]}>
+                  <Text style={[styles.itemName, { color: theme.colors.text1 }]}>
                     {item.name}
                   </Text>
                   {item.variant && (
-                    <Text style={[styles.itemVariant, { color: theme.colors.textTertiary }]}>
+                    <Text style={[styles.itemVariant, { color: theme.colors.text3 }]}>
                       {item.variant}
                     </Text>
                   )}
                   {item.customizations && item.customizations.length > 0 && (
-                    <Text style={[styles.itemCustomizations, { color: theme.colors.textTertiary }]}>
+                    <Text style={[styles.itemCustomizations, { color: theme.colors.text3 }]}>
                       {item.customizations.join(', ')}
                     </Text>
                   )}
                 </View>
-                <Text style={[styles.itemPrice, { color: theme.colors.textPrimary }]}>
+                <Text style={[styles.itemPrice, { color: theme.colors.text1 }]}>
                   {formatCurrency(item.price * item.quantity)}
                 </Text>
               </View>
@@ -519,40 +519,40 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
 
           {/* Order totals */}
-          <View style={[styles.totalsSection, { borderTopColor: theme.colors.divider }]}>
+          <View style={[styles.totalsSection, { borderTopColor: theme.colors.border }]}>
             <View style={styles.totalLine}>
-              <Text style={[styles.totalLineLabel, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.totalLineLabel, { color: theme.colors.text2 }]}>
                 Subtotal
               </Text>
-              <Text style={[styles.totalLineValue, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.totalLineValue, { color: theme.colors.text2 }]}>
                 {formatCurrency(order.subtotal)}
               </Text>
             </View>
             {order.deliveryFee > 0 && (
               <View style={styles.totalLine}>
-                <Text style={[styles.totalLineLabel, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.totalLineLabel, { color: theme.colors.text2 }]}>
                   Delivery Fee
                 </Text>
-                <Text style={[styles.totalLineValue, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.totalLineValue, { color: theme.colors.text2 }]}>
                   {formatCurrency(order.deliveryFee)}
                 </Text>
               </View>
             )}
             {order.tax > 0 && (
               <View style={styles.totalLine}>
-                <Text style={[styles.totalLineLabel, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.totalLineLabel, { color: theme.colors.text2 }]}>
                   Taxes
                 </Text>
-                <Text style={[styles.totalLineValue, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.totalLineValue, { color: theme.colors.text2 }]}>
                   {formatCurrency(order.tax)}
                 </Text>
               </View>
             )}
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: theme.colors.textPrimary }]}>
+              <Text style={[styles.totalLabel, { color: theme.colors.text1 }]}>
                 Total Paid
               </Text>
-              <Text style={[styles.totalValue, { color: theme.colors.textPrimary }]}>
+              <Text style={[styles.totalValue, { color: theme.colors.text1 }]}>
                 {formatCurrency(order.total)}
               </Text>
             </View>
@@ -562,23 +562,23 @@ const OrderTrackingScreen: React.FC = () => {
         {/* Delivery Address - Only show for delivery orders */}
         {order.orderType === 'DELIVERY' && order.deliveryAddress && (
           <Card elevation="sm" style={styles.addressCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Delivering To
             </Text>
             <View style={styles.addressContent}>
-              <Ionicons name="location" size={20} color={theme.colors.brand.primary} />
+              <Ionicons name="location" size={20} color={'#FFD000'} />
               <View style={styles.addressText}>
-                <Text style={[styles.addressLabel, { color: theme.colors.textPrimary }]}>
+                <Text style={[styles.addressLabel, { color: theme.colors.text1 }]}>
                   {order.deliveryAddress.label || 'Delivery Address'}
                 </Text>
-                <Text style={[styles.addressStreet, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.addressStreet, { color: theme.colors.text2 }]}>
                   {order.deliveryAddress.street}
                   {order.deliveryAddress.city ? `, ${order.deliveryAddress.city}` : ''}
                   {order.deliveryAddress.state ? `, ${order.deliveryAddress.state}` : ''}
                   {order.deliveryAddress.zipCode ? ` - ${order.deliveryAddress.zipCode}` : ''}
                 </Text>
                 {order.deliveryAddress.instructions && (
-                  <Text style={[styles.addressInstructions, { color: theme.colors.textTertiary }]}>
+                  <Text style={[styles.addressInstructions, { color: theme.colors.text3 }]}>
                     Note: {order.deliveryAddress.instructions}
                   </Text>
                 )}
@@ -590,16 +590,16 @@ const OrderTrackingScreen: React.FC = () => {
         {/* Takeaway/Dine-in info */}
         {order.orderType === 'TAKEAWAY' && (
           <Card elevation="sm" style={styles.addressCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Pickup Location
             </Text>
             <View style={styles.addressContent}>
-              <Ionicons name="storefront" size={20} color={theme.colors.brand.primary} />
+              <Ionicons name="storefront" size={20} color={'#FFD000'} />
               <View style={styles.addressText}>
-                <Text style={[styles.addressLabel, { color: theme.colors.textPrimary }]}>
+                <Text style={[styles.addressLabel, { color: theme.colors.text1 }]}>
                   Store Pickup
                 </Text>
-                <Text style={[styles.addressStreet, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.addressStreet, { color: theme.colors.text2 }]}>
                   Please collect your order from the store counter
                 </Text>
               </View>
@@ -614,9 +614,9 @@ const OrderTrackingScreen: React.FC = () => {
               <Ionicons
                 name={order.paymentMethod === 'CASH' ? 'cash-outline' : 'card-outline'}
                 size={20}
-                color={theme.colors.brand.primary}
+                color={'#FFD000'}
               />
-              <Text style={[styles.paymentMethodText, { color: theme.colors.textPrimary }]}>
+              <Text style={[styles.paymentMethodText, { color: theme.colors.text1 }]}>
                 {order.paymentMethod === 'CASH' ? 'Cash on Delivery' :
                  order.paymentMethod === 'UPI' ? 'Paid via UPI' :
                  order.paymentMethod === 'CARD' ? 'Paid via Card' : 'Paid Online'}
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
     paddingBottom: spacing[3],
   },
   backButton: {
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollContent: {
-    paddingHorizontal: spacing.screenHorizontal,
+    paddingHorizontal: spacing.screenPadding,
   },
   mapContainer: {
     height: 200,
@@ -710,10 +710,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   etaLabel: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   etaTime: {
-    fontSize: typography.fontSize.h1,
+    fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
   },
   statusBadge: {
@@ -730,14 +730,14 @@ const styles = StyleSheet.create({
     marginRight: spacing[2],
   },
   statusText: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     fontWeight: typography.fontWeight.semibold,
   },
   progressCard: {
     marginBottom: spacing[4],
   },
   sectionTitle: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
     marginBottom: spacing[4],
   },
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   itemCount: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   itemsList: {
     gap: spacing[3],
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
   },
   totalValue: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
   },
   addressCard: {
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
   },
   addressStreet: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
     marginTop: spacing[1],
   },
   addressInstructions: {
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[3],
   },
   errorText: {
-    fontSize: typography.fontSize.h4,
+    fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
     marginTop: spacing[4],
   },
@@ -947,10 +947,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
   },
   totalLineLabel: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   totalLineValue: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.bodySm,
   },
   // Payment card
   paymentCard: {
