@@ -4,15 +4,13 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MainTabParamList } from '../types';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography } from '../styles';
 
 // Screens
 import HomeScreen from '../screens/home/HomeScreen';
@@ -25,53 +23,30 @@ import ChatScreen from '../screens/support/ChatScreen';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabNavigator: React.FC = () => {
-  const { theme, isDark } = useTheme();
+  const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-
-  const tabBarHeight = 60 + insets.bottom;
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,
-        tabBarActiveTintColor: theme.colors.brand.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: typography.fontSize.caption,
-          fontWeight: typography.fontWeight.medium,
-          marginBottom: Platform.OS === 'ios' ? 0 : spacing[1],
-        },
         tabBarStyle: {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: tabBarHeight,
-          backgroundColor: 'transparent',
-          borderTopWidth: 0,
+          backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+          borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: 56 + insets.bottom,
+          paddingBottom: insets.bottom,
+          paddingTop: 4,
           elevation: 0,
+          shadowOpacity: 0,
         },
-        tabBarBackground: () => (
-          <BlurView
-            intensity={Platform.OS === 'ios' ? 80 : 100}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          >
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: isDark
-                    ? 'rgba(18, 18, 18, 0.85)'
-                    : 'rgba(255, 255, 255, 0.85)',
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: theme.colors.divider,
-                },
-              ]}
-            />
-          </BlurView>
-        ),
+        tabBarActiveTintColor: isDark ? '#FFD000' : '#0F0F0F',
+        tabBarInactiveTintColor: '#606060',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500' as const,
+          marginBottom: 2,
+        },
       }}
     >
       <Tab.Screen
