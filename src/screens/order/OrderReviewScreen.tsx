@@ -312,6 +312,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   skipButton: {
     paddingHorizontal: spacing[2],
@@ -339,6 +340,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     marginBottom: spacing[2],
   },
   heroSubtitle: {
@@ -351,6 +353,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[4],
   },
   ratingSection: {

@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   scrollContent: {
     paddingHorizontal: spacing.screenPadding,
@@ -223,6 +224,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     marginBottom: spacing[2],
   },
   pageSubtitle: {
@@ -245,6 +247,7 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     marginBottom: spacing[2],
     textAlign: 'center',
   },

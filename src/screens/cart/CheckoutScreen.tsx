@@ -678,6 +678,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   scrollContent: {
     paddingTop: spacing[2],
@@ -695,6 +696,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[3],
   },
   changeLink: {
@@ -806,10 +808,12 @@ const styles = StyleSheet.create({
   summaryTotal: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
   },
   summaryTotalValue: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   bottomBar: {
     position: 'absolute',
@@ -827,6 +831,7 @@ const styles = StyleSheet.create({
   bottomTotal: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   bottomDelivery: {
     fontSize: typography.fontSize.caption,

@@ -355,6 +355,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginTop: spacing[4],
   },
   retryButton: {
@@ -379,6 +380,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   markAllButton: {
     padding: spacing[1],
@@ -442,6 +444,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginTop: spacing[4],
   },
   emptySubtitle: {

@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   itemCount: {
     fontSize: typography.fontSize.body,
@@ -228,6 +229,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     flex: 1,
   },
   removeButton: {
@@ -272,6 +274,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginTop: spacing[4],
   },
   emptySubtitle: {

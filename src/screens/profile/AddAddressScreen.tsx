@@ -415,6 +415,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   scrollContent: {
     padding: spacing.screenPadding,
@@ -426,6 +427,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[3],
   },
   labelOptions: {

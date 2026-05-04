@@ -237,6 +237,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[3],
   },
   clearButton: {

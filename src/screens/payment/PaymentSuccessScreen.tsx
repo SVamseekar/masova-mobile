@@ -194,6 +194,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     textAlign: 'center',
     marginTop: spacing[6],
     marginBottom: spacing[2],

@@ -280,6 +280,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     textAlign: 'center',
     marginBottom: spacing[2],
   },
@@ -329,6 +330,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[4],
   },
   reasonCard: {

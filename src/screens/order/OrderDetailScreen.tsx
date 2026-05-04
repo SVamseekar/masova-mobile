@@ -285,6 +285,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginTop: spacing[2],
   },
   errorSubtitle: {
@@ -307,6 +308,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   scrollContent: {
     padding: spacing.screenPadding,
@@ -322,6 +324,7 @@ const styles = StyleSheet.create({
   orderNumber: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   orderDate: {
     fontSize: typography.fontSize.bodySm,
@@ -330,6 +333,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[4],
   },
   itemRow: {
@@ -368,10 +372,12 @@ const styles = StyleSheet.create({
   billTotal: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
   },
   billTotalValue: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   addressRow: {
     flexDirection: 'row',
