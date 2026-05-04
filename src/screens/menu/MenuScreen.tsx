@@ -24,7 +24,7 @@ import { useMenuItems } from '../../hooks/useMenuQueries';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Card, Chip, SearchBar, Badge } from '../../components/ui';
 import { StoreSelector } from '../../components/StoreSelector';
-import { RootStackParamList, MenuItem, DietaryType, Cuisine, Category } from '../../types';
+import { RootStackParamList, MenuItem, Cuisine, Category } from '../../types';
 
 // Category mappings based on cuisine (matching web version)
 const CUISINE_CATEGORY_MAP: Partial<Record<Cuisine, { id: Category; name: string }[]>> = {
@@ -464,7 +464,6 @@ const MenuScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('SOUTH_INDIAN');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [selectedDietary, setSelectedDietary] = useState<DietaryType | null>(null);
   const [vegOnly, setVegOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'popular' | 'price_low' | 'price_high'>('popular');
 
@@ -472,7 +471,6 @@ const MenuScreen: React.FC = () => {
   const { data: menuItems, isLoading, isError, error } = useMenuItems({
     cuisine: selectedCuisine,
     category: selectedCategory || undefined,
-    dietary: selectedDietary || undefined,
   });
 
   // Get categories for selected cuisine
@@ -506,13 +504,6 @@ const MenuScreen: React.FC = () => {
       items = items.filter((item) => item.category === selectedCategory);
     }
 
-    // Filter by dietary preference
-    if (selectedDietary) {
-      items = items.filter((item) =>
-        item.dietaryInfo?.includes(selectedDietary)
-      );
-    }
-
     // Filter by veg only
     if (vegOnly) {
       items = items.filter((item) =>
@@ -544,7 +535,7 @@ const MenuScreen: React.FC = () => {
     }
 
     return items;
-  }, [menuItems, selectedCuisine, selectedCategory, selectedDietary, vegOnly, searchQuery, sortBy]);
+  }, [menuItems, selectedCuisine, selectedCategory, vegOnly, searchQuery, sortBy]);
 
   const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
 
