@@ -409,34 +409,63 @@ const ItemDetailScreen: React.FC = () => {
           </View>
         ))}
 
+        {/* Dietary Badges */}
+        {menuItem.dietaryInfo && menuItem.dietaryInfo.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1, fontFamily: 'PlusJakartaSans-SemiBold' }]}>
+              Dietary Info
+            </Text>
+            <View style={styles.dietaryBadgesRow}>
+              {menuItem.dietaryInfo.map((d) => {
+                const dotColor =
+                  d === 'VEGAN' ? '#7B1FA2' :
+                  d === 'VEGETARIAN' ? '#22C55E' :
+                  d === 'NON_VEGETARIAN' ? '#FF4444' : '#A0A0A0';
+                const label =
+                  d === 'VEGAN' ? 'Vegan' :
+                  d === 'VEGETARIAN' ? 'Vegetarian' :
+                  d === 'NON_VEGETARIAN' ? 'Non-Vegetarian' :
+                  d === 'JAIN' ? 'Jain' :
+                  d === 'HALAL' ? 'Halal' :
+                  d === 'GLUTEN_FREE' ? 'Gluten-Free' :
+                  d === 'DAIRY_FREE' ? 'Dairy-Free' : d;
+                return (
+                  <View key={d} style={[styles.dietaryBadge, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface2 }]}>
+                    <View style={[styles.dietaryDot, { backgroundColor: dotColor }]} />
+                    <Text style={[styles.dietaryBadgeText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Medium' }]}>
+                      {label}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Allergen Information */}
         {menuItem.allergensDeclared && menuItem.allergens && menuItem.allergens.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text1, fontFamily: 'PlusJakartaSans-SemiBold' }]}>
               Contains Allergens
             </Text>
-            <View style={[styles.allergenWarning, { backgroundColor: '#fff8e1', borderColor: '#f9a825' }]}>
-              <Ionicons name="warning" size={16} color="#f9a825" />
-              <Text style={[styles.allergenWarningText, { color: '#795548' }]}>
-                Contains: {(menuItem.allergens as AllergenType[]).map((a) => ALLERGEN_LABELS[a] ?? a).join(', ')}
-              </Text>
-            </View>
-            <View style={styles.allergenChips}>
-              {(menuItem.allergens as AllergenType[]).map((allergen) => (
-                <View key={allergen} style={[styles.allergenChip, { backgroundColor: '#fff3e0', borderColor: '#ff9800' }]}>
-                  <Text style={[styles.allergenChipText, { color: '#e65100' }]}>
-                    {ALLERGEN_LABELS[allergen] ?? allergen}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing[2] }}>
+              <View style={{ flexDirection: 'row', gap: spacing[2] }}>
+                {(menuItem.allergens as AllergenType[]).map((allergen) => (
+                  <View key={allergen} style={[styles.allergenChip, { borderColor: '#A0A0A0', backgroundColor: theme.colors.surface1 }]}>
+                    <Text style={[styles.allergenChipText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Medium' }]}>
+                      {ALLERGEN_LABELS[allergen] ?? allergen}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
           </View>
         )}
         {menuItem.allergensDeclared && (!menuItem.allergens || menuItem.allergens.length === 0) && (
           <View style={styles.section}>
-            <View style={[styles.allergenWarning, { backgroundColor: '#e8f5e9', borderColor: '#4caf50' }]}>
-              <Ionicons name="checkmark-circle" size={16} color="#4caf50" />
-              <Text style={[styles.allergenWarningText, { color: '#2e7d32' }]}>
+            <View style={[styles.allergenWarning, { backgroundColor: theme.colors.surface2, borderColor: '#22C55E' }]}>
+              <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
+              <Text style={[styles.allergenWarningText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Regular' }]}>
                 Allergen-free — no major allergens declared
               </Text>
             </View>
@@ -783,6 +812,28 @@ const styles = StyleSheet.create({
   allergenChipText: {
     fontSize: typography.fontSize.caption,
     fontWeight: '600',
+  },
+  dietaryBadgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  dietaryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1] + 2,
+    borderRadius: borderRadius.chip,
+    borderWidth: 1,
+  },
+  dietaryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dietaryBadgeText: {
+    fontSize: 13,
   },
 });
 
