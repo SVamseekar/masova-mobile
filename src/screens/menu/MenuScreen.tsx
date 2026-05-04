@@ -640,6 +640,22 @@ const MenuScreen: React.FC = () => {
                 <Ionicons name="image-outline" size={48} color={theme.colors.text3} />
               </View>
             )}
+            {item.dietaryInfo && item.dietaryInfo.length > 0 && (
+              <View style={styles.dietaryDotOverlay}>
+                <View
+                  style={[
+                    styles.dietaryDot,
+                    {
+                      backgroundColor: item.dietaryInfo.includes('VEGAN')
+                        ? '#7B1FA2'
+                        : item.dietaryInfo.includes('VEGETARIAN')
+                        ? '#22C55E'
+                        : '#FF4444',
+                    },
+                  ]}
+                />
+              </View>
+            )}
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: '#FFD000' }]}
               onPress={() => {
@@ -848,6 +864,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   storeSelectorContainer: {
     paddingHorizontal: spacing.screenPadding,
@@ -972,6 +989,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.semibold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
     marginBottom: spacing[1],
   },
   ratingRow: {
@@ -1024,6 +1042,19 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
+  },
+  dietaryDotOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 2,
+  },
+  dietaryDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.6)',
   },
   itemImage: {
     width: 120,
