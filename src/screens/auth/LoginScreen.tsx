@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { spacing, borderRadius, typography } from '../../styles';
-import { Button, Input } from '../../components/ui';
+import { Button, Input, MaSoVaLogo } from '../../components/ui';
 import { AuthStackParamList } from '../../types';
 
 let GoogleSignin: any = null;
@@ -22,7 +23,7 @@ try {
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const LoginScreen: React.FC = () => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const { login, loginWithGoogle } = useAuth();
@@ -84,15 +85,19 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={isDark ? ['#0F0F0F', '#1A1A1A'] : ['#FFFFFF', '#F5F5F5']}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + spacing[8] }]}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>M</Text>
+          <View style={styles.logoWrapper}>
+            <MaSoVaLogo size="lg" textColor={isDark ? '#FFFFFF' : '#0F0F0F'} />
           </View>
           <Text style={[styles.title, { color: theme.colors.text1 }]}>Welcome Back</Text>
           <Text style={[styles.subtitle, { color: theme.colors.text2 }]}>
@@ -188,27 +193,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.screenPadding,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoWrapper: {
     marginBottom: spacing[6],
-    backgroundColor: '#FFD000',
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#000000',
+    alignItems: 'center',
   },
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     marginBottom: spacing[2],
   },
   subtitle: {
     fontSize: typography.fontSize.body,
+    fontFamily: 'PlusJakartaSans-Regular',
     textAlign: 'center',
   },
   form: {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -8,10 +9,10 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { spacing, borderRadius, typography } from '../../styles';
-import { Button, Input } from '../../components/ui';
+import { Button, Input, MaSoVaLogo } from '../../components/ui';
 
 const RegisterScreen: React.FC = () => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { register } = useAuth();
@@ -58,7 +59,11 @@ const RegisterScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={isDark ? ['#0F0F0F', '#1A1A1A'] : ['#FFFFFF', '#F5F5F5']}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -75,6 +80,9 @@ const RegisterScreen: React.FC = () => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          <View style={styles.logoWrapper}>
+            <MaSoVaLogo size="lg" textColor={isDark ? '#FFFFFF' : '#0F0F0F'} />
+          </View>
           <Text style={[styles.title, { color: theme.colors.text1 }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: theme.colors.text2 }]}>
             Sign up to start ordering your favorite food
@@ -171,13 +179,19 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.screenPadding,
   },
+  logoWrapper: {
+    marginBottom: spacing[6],
+    alignItems: 'center',
+  },
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
     marginBottom: spacing[2],
   },
   subtitle: {
     fontSize: typography.fontSize.body,
+    fontFamily: 'PlusJakartaSans-Regular',
     marginBottom: spacing[8],
   },
   form: {
