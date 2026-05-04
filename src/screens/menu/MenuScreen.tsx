@@ -548,6 +548,17 @@ const MenuScreen: React.FC = () => {
 
   const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
 
+  const renderSpiceDots = (spiceLevel: string) => {
+    const count = spiceLevel === 'MILD' ? 1 : spiceLevel === 'MEDIUM' ? 2 : spiceLevel === 'HOT' ? 3 : 4;
+    return (
+      <View style={[styles.metaItem, { flexDirection: 'row', gap: 3 }]}>
+        {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+          <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' }} />
+        ))}
+      </View>
+    );
+  };
+
   const handleCuisinePress = (cuisine: Cuisine) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedCuisine(cuisine);
@@ -610,16 +621,7 @@ const MenuScreen: React.FC = () => {
                   {item.preparationTime} min
                 </Text>
               </View>
-              {item.spiceLevel && item.cuisine !== 'BEVERAGES' && item.cuisine !== 'DESSERTS' && (() => {
-                const count = item.spiceLevel === 'MILD' ? 1 : item.spiceLevel === 'MEDIUM' ? 2 : item.spiceLevel === 'HOT' ? 3 : 4;
-                return (
-                  <View style={[styles.metaItem, { flexDirection: 'row', gap: 3 }]}>
-                    {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
-                      <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' }} />
-                    ))}
-                  </View>
-                );
-              })()}
+              {item.spiceLevel && item.cuisine !== 'BEVERAGES' && item.cuisine !== 'DESSERTS' && renderSpiceDots(item.spiceLevel)}
             </View>
             <View style={styles.priceRow}>
               <Text style={[styles.price, { color: theme.colors.text1 }]}>

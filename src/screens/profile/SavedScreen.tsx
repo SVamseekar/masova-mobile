@@ -158,7 +158,7 @@ const SavedScreen: React.FC = () => {
             </Text>
             <Button
               title="Browse Menu"
-              onPress={() => navigation.navigate('Main', { screen: 'Menu' } as any)}
+              onPress={() => navigation.navigate('Main', { screen: 'Search' } as any)}
               style={styles.browseButton}
             />
           </View>

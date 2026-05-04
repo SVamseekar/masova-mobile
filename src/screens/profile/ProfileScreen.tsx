@@ -290,8 +290,8 @@ const ProfileScreen: React.FC = () => {
             </Text>
             <View style={styles.allergenChips}>
               {(customerData.preferences.allergenAlerts as AllergenType[]).map((a) => (
-                <View key={a} style={[styles.allergenChip, { backgroundColor: '#fff3e0', borderColor: '#ff9800' }]}>
-                  <Text style={[styles.allergenChipText, { color: '#e65100' }]}>
+                <View key={a} style={[styles.allergenChip, { backgroundColor: theme.colors.surface1, borderColor: '#A0A0A0' }]}>
+                  <Text style={[styles.allergenChipText, { color: theme.colors.text2 }]}>
                     {ALLERGEN_LABELS[a] ?? a}
                   </Text>
                 </View>
