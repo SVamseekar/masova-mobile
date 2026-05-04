@@ -1,9 +1,4 @@
-/**
- * Home Screen
- * Main landing page with categories, promotions, and recommendations
- */
-
-import React, { useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Animated,
   FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,78 +18,69 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useRecommendedItems } from '../../hooks/useMenuQueries';
-import { spacing, borderRadius, typography, shadows } from '../../styles';
-import { Card, SearchBar, Badge, Skeleton } from '../../components/ui';
-import { StoreSelector } from '../../components/StoreSelector';
-import { RootStackParamList, MenuItem, Category } from '../../types';
+import { spacing, borderRadius, typography } from '../../styles';
+import { Card, MaSoVaLogo, FloatingChatBubble } from '../../components/ui';
+import { RootStackParamList, Category } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - spacing.screenPadding * 2;
 
-// Mock data for categories
-const CATEGORIES: { id: Category; name: string; iconName: React.ComponentProps<typeof Ionicons>['name']; image: string }[] = [
-  { id: 'PIZZA', name: 'Pizza', iconName: 'pizza-outline', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200' },
-  { id: 'BURGER', name: 'Burger', iconName: 'fast-food-outline', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200' },
-  { id: 'BIRYANI', name: 'Biryani', iconName: 'restaurant-outline', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=200' },
-  { id: 'DOSA', name: 'Dosa', iconName: 'cafe-outline', image: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=200' },
-  { id: 'NOODLES', name: 'Noodles', iconName: 'nutrition-outline', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200' },
-  { id: 'BEVERAGE', name: 'Drinks', iconName: 'wine-outline', image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=200' },
-];
-
-// Mock promotions
-const PROMOTIONS = [
+const HERO_SLIDES = [
   {
     id: '1',
-    title: '50% OFF on First Order',
-    subtitle: 'Use code WELCOME50',
     image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
-    gradient: ['#E53E3E', '#C0392B'],
+    title: 'Fresh Indian, delivered',
+    subtitle: 'Hot food at your door',
   },
   {
     id: '2',
+    image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800',
     title: 'Free Delivery Weekend',
     subtitle: 'No minimum order',
-    image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800',
-    gradient: ['#3B82F6', '#2563EB'],
-  },
-];
-
-// Mock recommended items
-const RECOMMENDED_ITEMS: Partial<MenuItem>[] = [
-  {
-    id: '1',
-    name: 'Margherita Pizza',
-    description: 'Classic Italian pizza with fresh mozzarella and basil',
-    basePrice: 34900,
-    discountedPrice: 29900,
-    imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400',
-    rating: 4.5,
-    reviewCount: 230,
-    preparationTime: 25,
-    isRecommended: true,
-    dietaryInfo: ['VEGETARIAN'],
-  },
-  {
-    id: '2',
-    name: 'Chicken Biryani',
-    description: 'Aromatic basmati rice with tender chicken pieces',
-    basePrice: 28900,
-    imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400',
-    rating: 4.7,
-    reviewCount: 450,
-    preparationTime: 30,
-    isRecommended: true,
   },
   {
     id: '3',
-    name: 'Classic Cheeseburger',
-    description: 'Juicy beef patty with melted cheese and special sauce',
-    basePrice: 19900,
-    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
-    rating: 4.3,
-    reviewCount: 180,
-    preparationTime: 15,
-    isRecommended: true,
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800',
+    title: 'Biryani Festival',
+    subtitle: '20% off all biryanis',
+  },
+];
+
+const CATEGORIES: { id: Category; name: string; iconName: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { id: 'BIRYANI', name: 'Biryani', iconName: 'restaurant-outline' },
+  { id: 'PIZZA', name: 'Pizza', iconName: 'pizza-outline' },
+  { id: 'BURGER', name: 'Burger', iconName: 'fast-food-outline' },
+  { id: 'DOSA', name: 'Dosa', iconName: 'cafe-outline' },
+  { id: 'NOODLES', name: 'Noodles', iconName: 'nutrition-outline' },
+  { id: 'BEVERAGE', name: 'Drinks', iconName: 'wine-outline' },
+];
+
+const STORE_CARDS = [
+  {
+    id: '1',
+    name: 'MaSoVa Indiranagar',
+    image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400',
+    rating: 4.7,
+    etaMin: 25,
+    deliveryFee: 29,
+    isTrending: true,
+  },
+  {
+    id: '2',
+    name: 'MaSoVa Koramangala',
+    image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400',
+    rating: 4.5,
+    etaMin: 35,
+    deliveryFee: 49,
+    isTrending: false,
+  },
+  {
+    id: '3',
+    name: 'MaSoVa Whitefield',
+    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400',
+    rating: 4.6,
+    etaMin: 45,
+    deliveryFee: 79,
+    isTrending: false,
   },
 ];
 
@@ -103,263 +90,268 @@ const HomeScreen: React.FC = () => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
 
-  // Fetch recommended items from API
-  const { data: recommendedItems, isLoading: loadingRecommended } = useRecommendedItems();
+  useRecommendedItems(); // prefetch
 
-  const formatPrice = (price: number) => {
-    return `₹${(price / 100).toFixed(0)}`;
-  };
+  // Hero carousel
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const carouselRef = useRef<FlatList>(null);
+  const dotWidth0 = useRef(new Animated.Value(24)).current;
+  const dotWidth1 = useRef(new Animated.Value(8)).current;
+  const dotWidth2 = useRef(new Animated.Value(8)).current;
+  const dotWidths = [dotWidth0, dotWidth1, dotWidth2];
 
-  const renderHeader = () => (
-    <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>
-      <View style={styles.headerLeft}>
-        <StoreSelector onStoreChange={(store) => console.log('Selected store:', store)} />
-      </View>
-      <TouchableOpacity
-        style={[styles.notificationButton, { backgroundColor: theme.colors.surface2 }]}
-        onPress={() => navigation.navigate('Notifications')}
-      >
-        <Ionicons name="notifications-outline" size={22} color={theme.colors.text1} />
-        <View style={[styles.notificationBadge, { backgroundColor: '#FFD000' }]} />
-      </TouchableOpacity>
-    </View>
-  );
+  // Entrance animations
+  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const greetingOpacity = useRef(new Animated.Value(0)).current;
 
-  const renderSearchBar = () => (
-    <View style={styles.searchContainer}>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('Search')}
-        style={{ flex: 1 }}
-      >
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search for dishes, restaurants..."
-          onVoicePress={() => {}}
-        />
-      </TouchableOpacity>
-    </View>
-  );
+  const catScale0 = useRef(new Animated.Value(0.8)).current;
+  const catScale1 = useRef(new Animated.Value(0.8)).current;
+  const catScale2 = useRef(new Animated.Value(0.8)).current;
+  const catScale3 = useRef(new Animated.Value(0.8)).current;
+  const catScale4 = useRef(new Animated.Value(0.8)).current;
+  const catScale5 = useRef(new Animated.Value(0.8)).current;
+  const catScales = [catScale0, catScale1, catScale2, catScale3, catScale4, catScale5];
 
-  const renderPromotions = () => (
-    <View style={styles.promotionsContainer}>
+  const catOpacity0 = useRef(new Animated.Value(0)).current;
+  const catOpacity1 = useRef(new Animated.Value(0)).current;
+  const catOpacity2 = useRef(new Animated.Value(0)).current;
+  const catOpacity3 = useRef(new Animated.Value(0)).current;
+  const catOpacity4 = useRef(new Animated.Value(0)).current;
+  const catOpacity5 = useRef(new Animated.Value(0)).current;
+  const catOpacities = [catOpacity0, catOpacity1, catOpacity2, catOpacity3, catOpacity4, catOpacity5];
+
+  const cardTranslate0 = useRef(new Animated.Value(40)).current;
+  const cardTranslate1 = useRef(new Animated.Value(40)).current;
+  const cardTranslate2 = useRef(new Animated.Value(40)).current;
+  const cardTranslates = [cardTranslate0, cardTranslate1, cardTranslate2];
+
+  const cardOpacity0 = useRef(new Animated.Value(0)).current;
+  const cardOpacity1 = useRef(new Animated.Value(0)).current;
+  const cardOpacity2 = useRef(new Animated.Value(0)).current;
+  const cardOpacities = [cardOpacity0, cardOpacity1, cardOpacity2];
+
+  useEffect(() => {
+    // Hero fades in at 0ms
+    Animated.timing(heroOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+
+    // Greeting at 100ms
+    setTimeout(() => {
+      Animated.timing(greetingOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    }, 100);
+
+    // Category icons stagger at 200ms+, 60ms apart
+    catScales.forEach((scale, i) => {
+      setTimeout(() => {
+        Animated.sequence([
+          Animated.spring(scale, { toValue: 1.05, tension: 300, friction: 20, useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 1.0, tension: 300, friction: 20, useNativeDriver: true }),
+        ]).start();
+        Animated.timing(catOpacities[i], { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      }, 200 + i * 60);
+    });
+
+    // Store cards slide up at 400ms+, 80ms apart
+    cardTranslates.forEach((translate, i) => {
+      setTimeout(() => {
+        Animated.timing(translate, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+        Animated.timing(cardOpacities[i], { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      }, 400 + i * 80);
+    });
+  }, []);
+
+  // Hero carousel auto-advance
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (currentSlide + 1) % HERO_SLIDES.length;
+      carouselRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      setCurrentSlide(nextIndex);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [currentSlide]);
+
+  // Dot width animation on slide change
+  useEffect(() => {
+    dotWidths.forEach((anim, i) => {
+      Animated.timing(anim, {
+        toValue: i === currentSlide ? 24 : 8,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    });
+  }, [currentSlide]);
+
+  const renderHeroCarousel = () => (
+    <Animated.View style={[styles.heroContainer, { opacity: heroOpacity }]}>
       <FlatList
-        data={PROMOTIONS}
+        ref={carouselRef}
+        data={HERO_SLIDES}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        scrollEnabled={false}
         onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / CARD_WIDTH);
-          setCurrentPromoIndex(index);
+          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          setCurrentSlide(index);
         }}
         renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.95} style={styles.promoCard}>
-            <Image source={{ uri: item.image }} style={styles.promoImage} />
+          <View style={{ width: SCREEN_WIDTH, height: 200 }}>
+            <Image source={{ uri: item.image }} style={styles.heroImage} />
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.8)']}
-              style={styles.promoGradient}
+              colors={['transparent', 'rgba(0,0,0,0.75)']}
+              style={styles.heroGradient}
             >
-              <Text style={styles.promoTitle}>{item.title}</Text>
-              <Text style={styles.promoSubtitle}>{item.subtitle}</Text>
+              <Text style={styles.heroTitle}>{item.title}</Text>
+              <Text style={styles.heroSubtitle}>{item.subtitle}</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </View>
         )}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: spacing.screenPadding }}
-        ItemSeparatorComponent={() => <View style={{ width: spacing[3] }} />}
       />
-      <View style={styles.promoIndicators}>
-        {PROMOTIONS.map((_, index) => (
-          <View
+      <View style={styles.dotContainer}>
+        {HERO_SLIDES.map((_, index) => (
+          <Animated.View
             key={index}
             style={[
-              styles.promoIndicator,
+              styles.dot,
               {
-                backgroundColor:
-                  index === currentPromoIndex
-                    ? '#FFD000'
-                    : theme.colors.border,
-                width: index === currentPromoIndex ? 20 : 8,
+                width: dotWidths[index],
+                backgroundColor: index === currentSlide ? '#FFD000' : 'rgba(255,255,255,0.4)',
               },
             ]}
           />
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 
   const renderCategories = () => (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-          Categories
-        </Text>
-        <TouchableOpacity>
-          <Text style={[styles.seeAll, { color: '#FFD000' }]}>
-            See all
+      <Animated.View style={{ opacity: greetingOpacity }}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
+            What are you craving?
           </Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+      </Animated.View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesScroll}
       >
-        {CATEGORIES.map((category) => (
-          <TouchableOpacity
+        {CATEGORIES.map((category, i) => (
+          <Animated.View
             key={category.id}
-            style={styles.categoryItem}
-            onPress={() => navigation.navigate('Main', { screen: 'Menu', params: { category: category.id } } as any)}
+            style={{ transform: [{ scale: catScales[i] }], opacity: catOpacities[i] }}
           >
-            <View
-              style={[
-                styles.categoryIcon,
-                { backgroundColor: theme.colors.surface2 },
-              ]}
+            <TouchableOpacity
+              style={styles.categoryItem}
+              onPress={() => navigation.navigate('Search')}
             >
-              <Ionicons name={category.iconName} size={22} color={theme.colors.text1} />
-            </View>
-            <Text
-              style={[styles.categoryName, { color: theme.colors.text1 }]}
-              numberOfLines={1}
-            >
-              {category.name}
-            </Text>
-          </TouchableOpacity>
+              <View style={[styles.categoryIcon, { backgroundColor: theme.colors.surface2 }]}>
+                <Ionicons name={category.iconName} size={24} color={theme.colors.text1} />
+              </View>
+              <Text style={[styles.categoryName, { color: theme.colors.text1 }]}>
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         ))}
       </ScrollView>
     </View>
   );
 
-  const renderRecommended = () => {
-    // Use API data if available, fallback to mock data
-    const rawItems = recommendedItems || RECOMMENDED_ITEMS;
-
-    // Deduplicate items by name (keep first occurrence)
-    const seenNames = new Set<string>();
-    const items = rawItems.filter((item) => {
-      if (seenNames.has(item.name!)) {
-        return false;
-      }
-      seenNames.add(item.name!);
-      return true;
-    });
-
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-            Recommended for You
-          </Text>
-        </View>
-        {loadingRecommended ? (
-          <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
-              Loading recommendations...
-            </Text>
-          </View>
-        ) : (
-          items.map((item) => (
-        <TouchableOpacity
-          key={item.id}
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('ItemDetail', { itemId: item.id! })}
-        >
-          <Card
-            elevation="sm"
-            padding={0}
-            style={styles.menuCard}
-          >
-            <Image source={{ uri: item.imageUrl }} style={styles.menuImage} />
-            <View style={styles.menuContent}>
-              <View style={styles.menuBadges}>
-                {item.dietaryInfo?.includes('VEGETARIAN') && (
-                  <View style={[styles.vegBadge, { borderColor: theme.colors.semantic.success }]}>
-                    <View style={[styles.vegDot, { backgroundColor: theme.colors.semantic.success }]} />
-                  </View>
-                )}
-                {item.isRecommended && (
-                  <Badge label="Recommended" variant="warning" size="sm" />
-                )}
-              </View>
-              <View style={styles.menuHeader}>
-                <Text
-                  style={[styles.menuName, { color: theme.colors.text1 }]}
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
-              </View>
-              <Text
-                style={[styles.menuDescription, { color: theme.colors.text2 }]}
-                numberOfLines={2}
-              >
-                {item.description}
-              </Text>
-              <View style={styles.menuFooter}>
-                <View style={styles.priceContainer}>
-                  <Text style={[styles.price, { color: theme.colors.text1 }]}>
-                    {formatPrice(item.discountedPrice || item.basePrice!)}
-                  </Text>
-                  {item.discountedPrice && (
-                    <Text style={[styles.originalPrice, { color: theme.colors.text3 }]}>
-                      {formatPrice(item.basePrice!)}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.menuMeta}>
-                  <View style={styles.ratingContainer}>
-                    <Ionicons name="star" size={14} color="#F59E0B" />
-                    <Text style={[styles.rating, { color: theme.colors.text1 }]}>
-                      {item.rating}
-                    </Text>
-                  </View>
-                  <Text style={[styles.prepTime, { color: theme.colors.text2 }]}>
-                    {item.preparationTime} min
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: '#FFD000' }]}
-              >
-                <Text style={styles.addButtonText}>ADD</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
-        </TouchableOpacity>
-          ))
-        )}
+  const renderStoreCards = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
+          Popular Near You
+        </Text>
       </View>
-    );
-  };
+      {STORE_CARDS.map((store, i) => (
+        <Animated.View
+          key={store.id}
+          style={{
+            transform: [{ translateY: cardTranslates[i] }],
+            opacity: cardOpacities[i],
+            marginHorizontal: spacing.screenPadding,
+            marginBottom: spacing[4],
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={() => navigation.navigate('Search')}
+          >
+            <Card elevation="sm" padding={0} style={styles.storeCard}>
+              <Image source={{ uri: store.image }} style={styles.storeImage} />
+              {store.isTrending && (
+                <View style={styles.trendingBadge}>
+                  <Text style={styles.trendingText}>Trending</Text>
+                </View>
+              )}
+              <View style={styles.storeInfo}>
+                <Text style={[styles.storeName, { color: theme.colors.text1 }]}>
+                  {store.name}
+                </Text>
+                <View style={styles.storeMetaRow}>
+                  <View style={styles.storeMetaItem}>
+                    <Ionicons name="star" size={13} color="#F59E0B" />
+                    <Text style={[styles.storeMetaText, { color: theme.colors.text2 }]}>
+                      {store.rating}
+                    </Text>
+                  </View>
+                  <View style={styles.storeMetaItem}>
+                    <Ionicons name="time-outline" size={13} color={theme.colors.text3} />
+                    <Text style={[styles.storeMetaText, { color: theme.colors.text2 }]}>
+                      {store.etaMin} min
+                    </Text>
+                  </View>
+                  <View style={styles.storeMetaItem}>
+                    <Ionicons name="bicycle-outline" size={13} color={theme.colors.text3} />
+                    <Text style={[styles.storeMetaText, { color: theme.colors.text2 }]}>
+                      ₹{store.deliveryFee} delivery
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </Card>
+          </TouchableOpacity>
+        </Animated.View>
+      ))}
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {renderHeader()}
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>
+        <MaSoVaLogo size="md" textColor={isDark ? '#FFFFFF' : '#0F0F0F'} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: theme.colors.surface2 }]}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={20} color={theme.colors.text1} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {renderSearchBar()}
-        {renderPromotions()}
+        {renderHeroCarousel()}
         {renderCategories()}
-        {renderRecommended()}
+        {renderStoreCards()}
       </ScrollView>
+
+      <FloatingChatBubble bottomOffset={72} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: spacing[20],
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -367,67 +359,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenPadding,
     paddingBottom: spacing[2],
   },
-  headerLeft: {
-    flex: 1,
-    marginRight: spacing[3],
+  headerRight: {
+    flexDirection: 'row',
+    gap: spacing[2],
   },
-  notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  searchContainer: {
-    paddingHorizontal: spacing.screenPadding,
-    marginTop: spacing[3],
+  heroContainer: {
     marginBottom: spacing[4],
   },
-  promotionsContainer: {
-    marginBottom: spacing[6],
-  },
-  promoCard: {
-    width: CARD_WIDTH,
-    height: 160,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  promoImage: {
+  heroImage: {
     width: '100%',
-    height: '100%',
+    height: 200,
   },
-  promoGradient: {
+  heroGradient: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
     padding: spacing[4],
   },
-  promoTitle: {
+  heroTitle: {
+    fontFamily: 'PlusJakartaSans-Bold',
     fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.bold,
     color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
-  promoSubtitle: {
-    fontSize: typography.fontSize.body,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: spacing[1],
+  heroSubtitle: {
+    fontFamily: 'PlusJakartaSans-Regular',
+    fontSize: typography.fontSize.bodySm,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
   },
-  promoIndicators: {
+  dotContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: spacing[3],
-    gap: spacing[2],
+    gap: spacing[1],
   },
-  promoIndicator: {
+  dot: {
     height: 8,
     borderRadius: 4,
   },
@@ -435,19 +408,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing[6],
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: spacing.screenPadding,
     marginBottom: spacing[4],
   },
   sectionTitle: {
+    fontFamily: 'PlusJakartaSans-Bold',
     fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.bold,
-  },
-  seeAll: {
-    fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.medium,
   },
   categoriesScroll: {
     paddingHorizontal: spacing.screenPadding,
@@ -465,117 +431,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing[2],
   },
-  categoryEmoji: {
-    fontSize: 28,
-  },
   categoryName: {
-    fontSize: typography.fontSize.bodySm,
-    fontWeight: typography.fontWeight.medium,
+    fontFamily: 'PlusJakartaSans-Medium',
+    fontSize: typography.fontSize.caption,
     textAlign: 'center',
   },
-  menuCard: {
-    marginHorizontal: spacing.screenPadding,
-    marginBottom: spacing[4],
+  storeCard: {
     overflow: 'hidden',
   },
-  menuImage: {
+  storeImage: {
     width: '100%',
-    height: 180,
+    height: 160,
   },
-  menuContent: {
+  trendingBadge: {
+    position: 'absolute',
+    top: spacing[3],
+    left: spacing[3],
+    backgroundColor: '#FFD000',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.chip,
+  },
+  trendingText: {
+    fontFamily: 'PlusJakartaSans-Bold',
+    fontSize: typography.fontSize.caption,
+    color: '#000000',
+  },
+  storeInfo: {
     padding: spacing[4],
   },
-  menuBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
+  storeName: {
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontSize: typography.fontSize.body,
     marginBottom: spacing[2],
   },
-  menuHeader: {
+  storeMetaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  storeMetaItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    gap: 4,
   },
-  menuName: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
-    flex: 1,
-  },
-  vegBadge: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing[2],
-  },
-  vegDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  menuDescription: {
+  storeMetaText: {
+    fontFamily: 'PlusJakartaSans-Regular',
     fontSize: typography.fontSize.bodySm,
-    lineHeight: typography.lineHeight.bodySm,
-    marginBottom: spacing[3],
-  },
-  menuFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  price: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.bold,
-  },
-  originalPrice: {
-    fontSize: typography.fontSize.bodySm,
-    textDecorationLine: 'line-through',
-  },
-  menuMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  rating: {
-    fontSize: typography.fontSize.bodySm,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  prepTime: {
-    fontSize: typography.fontSize.bodySm,
-  },
-  addButton: {
-    position: 'absolute',
-    right: spacing[4],
-    bottom: spacing[4],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.button,
-    ...shadows.sm,
-  },
-  addButtonText: {
-    color: '#000000',
-    fontSize: typography.fontSize.label,
-    fontWeight: typography.fontWeight.bold,
-  },
-  loadingContainer: {
-    padding: spacing[8],
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: typography.fontSize.body,
   },
 });
 
