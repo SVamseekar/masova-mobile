@@ -3,7 +3,7 @@
  * Real-time order status and delivery tracking
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Linking,
+  Animated,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../hooks/useTheme';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
-import { Button, Card, Badge } from '../../components/ui';
+import { Button, Card, Badge, FloatingChatBubble } from '../../components/ui';
 import { RootStackParamList, OrderStatus, DeliveryTracking } from '../../types';
 import { useOrderTracking } from '../../hooks/useOrderTracking';
 import { deliveryApi } from '../../services/api';
@@ -90,6 +91,17 @@ const OrderTrackingScreen: React.FC = () => {
 
   const currentStatus = order?.status || 'PENDING';
   const [eta, setEta] = useState(order?.preparationTime || 25);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.5, duration: 750, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 750, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   // Fetch delivery tracking info when order is dispatched
   useEffect(() => {
@@ -161,7 +173,9 @@ const OrderTrackingScreen: React.FC = () => {
                   style={[
                     styles.progressDot,
                     {
-                      backgroundColor: isCompleted || isCurrent
+                      backgroundColor: isCompleted
+                        ? '#22C55E'
+                        : isCurrent
                         ? '#FFD000'
                         : theme.colors.border,
                     },
@@ -171,7 +185,7 @@ const OrderTrackingScreen: React.FC = () => {
                     <Ionicons name="checkmark" size={14} color="#FFF" />
                   )}
                   {isCurrent && (
-                    <View style={styles.activeDot} />
+                    <Animated.View style={[styles.activeDot, { opacity: pulseAnim }]} />
                   )}
                 </View>
                 {index < orderStages.length - 1 && (
@@ -180,7 +194,7 @@ const OrderTrackingScreen: React.FC = () => {
                       styles.progressLine,
                       {
                         backgroundColor: isCompleted
-                          ? '#FFD000'
+                          ? '#22C55E'
                           : theme.colors.border,
                       },
                     ]}
@@ -636,19 +650,22 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button
-            title="Need Help?"
-            variant="secondary"
-            onPress={() => {}}
-            fullWidth
-          />
-        </View>
+        {/* Need Help */}
+        <TouchableOpacity
+          style={[styles.needHelpButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface1 }]}
+          onPress={() => (navigation as any).navigate('Chat')}
+        >
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={theme.colors.text2} />
+          <Text style={[styles.needHelpText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Medium' }]}>
+            Need help?
+          </Text>
+        </TouchableOpacity>
 
         {/* Spacer */}
         <View style={{ height: spacing[10] }} />
       </ScrollView>
+
+      <FloatingChatBubble bottomOffset={80} />
     </View>
   );
 };
@@ -893,6 +910,21 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginBottom: spacing[4],
+  },
+  needHelpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignSelf: 'center',
+    marginVertical: 16,
+  },
+  needHelpText: {
+    fontSize: 14,
   },
   // Loading & Error states
   loadingContainer: {
