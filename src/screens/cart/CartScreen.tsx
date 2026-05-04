@@ -22,7 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { useCart } from '../../contexts/CartContext';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
-import { Button, Card, QuantitySelector } from '../../components/ui';
+import { Button, Card, QuantitySelector, FloatingChatBubble } from '../../components/ui';
 import { RootStackParamList } from '../../types';
 
 // Mock cart data
@@ -90,6 +90,7 @@ const CartScreen: React.FC = () => {
   const {
     items: cartItems,
     subtotal,
+    deliveryFee,
     taxes,
     total,
     updateQuantity,
@@ -190,7 +191,7 @@ const CartScreen: React.FC = () => {
       </Text>
       <Button
         title="Browse Menu"
-        onPress={() => navigation.navigate('Main', { screen: 'Menu' } as any)}
+        onPress={() => navigation.navigate('Main', { screen: 'Search' } as any)}
         variant="primary"
         style={styles.browseButton}
       />
@@ -293,6 +294,14 @@ const CartScreen: React.FC = () => {
               </Text>
             </View>
             <View style={styles.billRow}>
+              <Text style={[styles.billLabel, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Regular' }]}>
+                Delivery fee
+              </Text>
+              <Text style={[styles.billValue, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Medium' }]}>
+                {deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee)}
+              </Text>
+            </View>
+            <View style={styles.billRow}>
               <Text style={[styles.billLabel, { color: theme.colors.text2 }]}>
                 Taxes & Charges
               </Text>
@@ -325,6 +334,8 @@ const CartScreen: React.FC = () => {
         {/* Spacer - account for checkout bar + tab bar */}
         <View style={{ height: 180 }} />
       </ScrollView>
+
+      <FloatingChatBubble bottomOffset={130} />
 
       {/* Checkout Bar - positioned above tab bar */}
       <View
@@ -370,6 +381,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   itemCount: {
     fontSize: typography.fontSize.body,
