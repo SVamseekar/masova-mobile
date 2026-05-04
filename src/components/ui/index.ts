@@ -10,3 +10,4 @@ export { default as Chip } from './Chip';
 export { default as SearchBar } from './SearchBar';
 export { default as QuantitySelector } from './QuantitySelector';
 export { default as Skeleton } from './Skeleton';
+export { MaSoVaLogo } from './MaSoVaLogo';
