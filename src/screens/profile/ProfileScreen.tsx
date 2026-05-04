@@ -335,6 +335,12 @@ const ProfileScreen: React.FC = () => {
             onPress={() => navigation.navigate('Notifications')}
             theme={theme}
           />
+          <MenuItem
+            icon="chatbubble-ellipses-outline"
+            label="Support & Chat"
+            onPress={() => navigation.navigate('Chat')}
+            theme={theme}
+          />
           <TouchableOpacity style={styles.menuItem} onPress={toggleTheme}>
             <View
               style={[styles.menuIcon, { backgroundColor: theme.colors.surface2 }]}

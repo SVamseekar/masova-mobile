@@ -528,6 +528,7 @@ export type RootStackParamList = {
   AddAddress: { address?: DeliveryAddress };
   Search: undefined;
   Notifications: undefined;
+  Chat: undefined;
 };
 
 export type MainTabParamList = {

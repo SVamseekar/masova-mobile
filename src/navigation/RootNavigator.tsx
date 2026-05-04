@@ -31,6 +31,7 @@ import AddressManagementScreen from '../screens/profile/AddressManagementScreen'
 import AddAddressScreen from '../screens/profile/AddAddressScreen';
 import SearchScreen from '../screens/home/SearchScreen';
 import NotificationsScreen from '../screens/home/NotificationsScreen';
+import ChatScreen from '../screens/support/ChatScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -146,6 +147,14 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           }}
         />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{
+            animation: 'slide_from_bottom',
+            presentation: 'modal',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
