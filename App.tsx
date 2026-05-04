@@ -1,14 +1,11 @@
-/**
- * MaSoVa Mobile App
- * Customer ordering application
- */
-
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainerRef } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { View, ActivityIndicator } from 'react-native';
 
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';
 import { AuthProvider } from './src/contexts/AuthContext';
@@ -17,22 +14,17 @@ import { StoreProvider } from './src/contexts/StoreContext';
 import { RootNavigator } from './src/navigation';
 import { RootStackParamList } from './src/types';
 
-// Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
       retry: 2,
     },
   },
 });
 
-// Navigation ref for handling notification taps when app is not in foreground
 export const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
 
-/**
- * App content
- */
 const AppContent: React.FC = () => {
   const { isDark } = useTheme();
 
@@ -44,9 +36,6 @@ const AppContent: React.FC = () => {
   );
 };
 
-/**
- * App with providers
- */
 const AppWithProviders: React.FC = () => {
   return (
     <ThemeProvider>
@@ -62,6 +51,22 @@ const AppWithProviders: React.FC = () => {
 };
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'PlusJakartaSans-Regular': require('./assets/fonts/PlusJakartaSans-Regular.ttf'),
+    'PlusJakartaSans-Medium': require('./assets/fonts/PlusJakartaSans-Medium.ttf'),
+    'PlusJakartaSans-SemiBold': require('./assets/fonts/PlusJakartaSans-SemiBold.ttf'),
+    'PlusJakartaSans-Bold': require('./assets/fonts/PlusJakartaSans-Bold.ttf'),
+    'PlusJakartaSans-ExtraBold': require('./assets/fonts/PlusJakartaSans-ExtraBold.ttf'),
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0F0F0F', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#FFD000" />
+      </View>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
