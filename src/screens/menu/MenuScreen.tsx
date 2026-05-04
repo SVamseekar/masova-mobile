@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 
@@ -24,7 +24,7 @@ import { useMenuItems } from '../../hooks/useMenuQueries';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Card, Chip, SearchBar, Badge } from '../../components/ui';
 import { StoreSelector } from '../../components/StoreSelector';
-import { RootStackParamList, MainTabParamList, MenuItem, DietaryType, Cuisine, Category } from '../../types';
+import { RootStackParamList, MenuItem, DietaryType, Cuisine, Category } from '../../types';
 
 // Category mappings based on cuisine (matching web version)
 const CUISINE_CATEGORY_MAP: Partial<Record<Cuisine, { id: Category; name: string }[]>> = {
@@ -454,14 +454,12 @@ const MOCK_MENU_ITEMS: MenuItem[] = [
   },
 ];
 
-type MenuRouteProp = RouteProp<MainTabParamList, 'Menu'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const MenuScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<MenuRouteProp>();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('SOUTH_INDIAN');

@@ -532,11 +532,10 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Menu: { category?: Category; cuisine?: Cuisine };
-  Cart: undefined;
+  Search: undefined;
+  Orders: undefined;
   Saved: undefined;
-  Profile: undefined;
-  Support: undefined;
+  Account: undefined;
 };
 
 export type AuthStackParamList = {

@@ -1,8 +1,3 @@
-/**
- * Main Tab Navigator
- * Bottom tab navigation with glassmorphic tab bar
- */
-
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -12,13 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainTabParamList } from '../types';
 import { useTheme } from '../hooks/useTheme';
 
-// Screens
 import HomeScreen from '../screens/home/HomeScreen';
-import MenuScreen from '../screens/menu/MenuScreen';
-import CartScreen from '../screens/cart/CartScreen';
+import SearchScreen from '../screens/home/SearchScreen';
+import OrderHistoryScreen from '../screens/order/OrderHistoryScreen';
 import SavedScreen from '../screens/profile/SavedScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
-import ChatScreen from '../screens/support/ChatScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -44,7 +37,7 @@ const MainTabNavigator: React.FC = () => {
         tabBarInactiveTintColor: '#606060',
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500' as const,
+          fontFamily: 'PlusJakartaSans-Medium',
           marginBottom: 2,
         },
       }}
@@ -54,39 +47,26 @@ const MainTabNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Menu"
-        component={MenuScreen}
+        name="Search"
+        component={SearchScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'restaurant' : 'restaurant-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'search' : 'search-outline'} size={24} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Cart"
-        component={CartScreen}
+        name="Orders"
+        component={OrderHistoryScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'cart' : 'cart-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={24} color={color} />
           ),
-          tabBarBadge: undefined, // Will be dynamic based on cart state
         }}
       />
       <Tab.Screen
@@ -94,38 +74,16 @@ const MainTabNavigator: React.FC = () => {
         component={SavedScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'heart' : 'heart-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="Account"
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Support"
-        component={ChatScreen}
-        options={{
-          tabBarLabel: 'Support',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
           ),
         }}
       />
