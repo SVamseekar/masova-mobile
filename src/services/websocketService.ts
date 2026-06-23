@@ -5,7 +5,7 @@
 
 import { Client, StompSubscription, IMessage } from '@stomp/stompjs';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAccessToken } from './secureTokenStorage';
 import { Order, DeliveryTracking } from '../types';
 
 // WebSocket URLs based on environment
@@ -20,8 +20,6 @@ const getWebSocketUrl = () => {
 };
 
 const WS_URL = getWebSocketUrl();
-const AUTH_TOKEN_KEY = 'masova_auth_token';
-
 /**
  * Order update callback
  */
@@ -78,7 +76,7 @@ class WebSocketService {
     return new Promise(async (resolve, reject) => {
       try {
         // Get auth token
-        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        const token = await getAccessToken();
 
         // Use native WebSocket (SockJS is Node.js-only and crashes Hermes)
         const wsUrl = WS_URL.replace(/^http/, 'ws');

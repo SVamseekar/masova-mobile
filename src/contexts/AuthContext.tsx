@@ -5,6 +5,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authApi } from '../services/api';
+import { migrateLegacyTokens } from '../services/secureTokenStorage';
 
 interface User {
   id: string;
@@ -42,6 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
+      await migrateLegacyTokens();
       const isAuth = await authApi.isAuthenticated();
       if (isAuth) {
         const storedUser = await authApi.getCurrentUser();

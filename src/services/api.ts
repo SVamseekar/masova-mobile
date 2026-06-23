@@ -6,6 +6,13 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  setAccessToken,
+  clearTokens,
+} from './secureTokenStorage';
 
 // =============================================================================
 // CONFIGURATION
@@ -24,9 +31,6 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 
-// Token storage keys
-const AUTH_TOKEN_KEY = 'masova_auth_token';
-const REFRESH_TOKEN_KEY = 'masova_refresh_token';
 const USER_KEY = 'masova_user';
 const SELECTED_STORE_KEY = '@masova_selected_store';
 
@@ -46,7 +50,7 @@ const api: AxiosInstance = axios.create({
 // Request interceptor - add auth token and store ID
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    const token = await getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -86,12 +90,12 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+        const refreshToken = await getRefreshToken();
         if (refreshToken) {
           const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
           const { token } = response.data;
 
-          await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+          await setAccessToken(token);
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${token}`;
@@ -123,15 +127,13 @@ const saveAuthData = async (token: string | undefined, refreshToken: string | un
     throw new Error('Cannot save auth data: missing token, refreshToken, or user');
   }
 
-  await AsyncStorage.multiSet([
-    [AUTH_TOKEN_KEY, token],
-    [REFRESH_TOKEN_KEY, refreshToken],
-    [USER_KEY, JSON.stringify(user)],
-  ]);
+  await setTokens(token, refreshToken);
+  await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
 const clearAuthData = async () => {
-  await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
+  await clearTokens();
+  await AsyncStorage.removeItem(USER_KEY);
 };
 
 const getStoredUser = async () => {
@@ -188,12 +190,12 @@ export const authApi = {
    * POST /api/auth/refresh (Public, rate limited: 20 req/min)
    */
   refreshToken: async () => {
-    const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    const refreshToken = await getRefreshToken();
     if (!refreshToken) throw new Error('No refresh token');
 
     const response = await api.post('/auth/refresh', { refreshToken });
     const { token } = response.data;
-    await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+    await setAccessToken(token);
     return response.data;
   },
 
@@ -233,7 +235,7 @@ export const authApi = {
    * Check if user is authenticated
    */
   isAuthenticated: async () => {
-    const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    const token = await getAccessToken();
     return !!token;
   },
 
