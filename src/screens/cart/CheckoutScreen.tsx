@@ -185,7 +185,8 @@ const CheckoutScreen: React.FC = () => {
       if (lat && lng) {
         try {
           const zoneCheck = await deliveryApi.checkDeliveryZone(selectedStoreId, lat, lng);
-          if (zoneCheck && zoneCheck.inZone === false) {
+          const isOutside = zoneCheck && (zoneCheck.inZone === false || zoneCheck.isWithinDeliveryZone === false);
+          if (isOutside) {
             Alert.alert(
               'Delivery Unavailable',
               'The selected delivery address is outside the delivery radius for this store. Please select Takeaway or choose a different address.',

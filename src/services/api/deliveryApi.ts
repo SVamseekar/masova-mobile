@@ -8,6 +8,7 @@ export interface DeliveryOtpResponse {
 
 export interface DeliveryZoneCheck {
   inZone: boolean;
+  isWithinDeliveryZone?: boolean;
   zoneName?: string;
   distanceKm?: number;
 }
@@ -32,10 +33,15 @@ export const deliveryApi = {
   },
 
   checkDeliveryZone: async (storeId: string, latitude: number, longitude: number): Promise<DeliveryZoneCheck> => {
-    const response = await httpClient.get<DeliveryZoneCheck>(
+    const response = await httpClient.get<any>(
       `/delivery/zones?storeId=${encodeURIComponent(storeId)}&lat=${latitude}&lng=${longitude}&check=true`
     );
-    return response.data;
+    const raw = response.data || {};
+    const inZoneValue = raw.inZone ?? raw.isWithinDeliveryZone ?? true;
+    return {
+      ...raw,
+      inZone: Boolean(inZoneValue),
+    };
   },
 };
 

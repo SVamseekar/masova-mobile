@@ -165,13 +165,16 @@ describe('Domain API Contract Modules', () => {
       expect(httpClient.patch).toHaveBeenCalledWith('/customers/cust_999', { preferences: prefs });
     });
 
-    it('calls GET /delivery/zones with storeId, lat, lng, and check=true', async () => {
-      (httpClient.get as jest.Mock).mockResolvedValue({ data: { inZone: true, distanceKm: 2.5 } });
+    it('calls GET /delivery/zones and maps isWithinDeliveryZone to inZone correctly', async () => {
+      (httpClient.get as jest.Mock).mockResolvedValueOnce({ data: { isWithinDeliveryZone: false } });
 
-      const check = await deliveryApi.checkDeliveryZone('DOM001', 17.385, 78.4867);
-
+      const checkOutside = await deliveryApi.checkDeliveryZone('DOM001', 17.385, 78.4867);
       expect(httpClient.get).toHaveBeenCalledWith('/delivery/zones?storeId=DOM001&lat=17.385&lng=78.4867&check=true');
-      expect(check.inZone).toBe(true);
+      expect(checkOutside.inZone).toBe(false);
+
+      (httpClient.get as jest.Mock).mockResolvedValueOnce({ data: { isWithinDeliveryZone: true, distanceKm: 2.5 } });
+      const checkInside = await deliveryApi.checkDeliveryZone('DOM001', 17.385, 78.4867);
+      expect(checkInside.inZone).toBe(true);
     });
   });
 });
