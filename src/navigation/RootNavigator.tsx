@@ -32,6 +32,10 @@ import AddAddressScreen from '../screens/profile/AddAddressScreen';
 import SearchScreen from '../screens/home/SearchScreen';
 import NotificationsScreen from '../screens/home/NotificationsScreen';
 import ChatScreen from '../screens/support/ChatScreen';
+import PreferencesScreen from '../screens/profile/PreferencesScreen';
+import NotificationSettingsScreen from '../screens/profile/NotificationSettingsScreen';
+import LoyaltyHistoryScreen from '../screens/profile/LoyaltyHistoryScreen';
+import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -155,6 +159,10 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
             presentation: 'modal',
           }}
         />
+        <Stack.Screen name="Preferences" component={PreferencesScreen} />
+        <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+        <Stack.Screen name="LoyaltyHistory" component={LoyaltyHistoryScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

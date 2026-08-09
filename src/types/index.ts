@@ -55,9 +55,14 @@ export interface OrderStats {
 }
 
 export interface CustomerPreferences {
-  allergenAlerts?: string[];
-  dietaryRestrictions?: string[];
+  favoriteMenuItems?: string[];
   cuisinePreferences?: string[];
+  dietaryRestrictions?: string[];
+  allergenAlerts?: string[];
+  preferredPaymentMethod?: string;
+  spiceLevel?: string;
+  notifyOnOffers?: boolean;
+  notifyOnOrderStatus?: boolean;
   spicePreference?: string;
   notificationEnabled?: boolean;
   smsEnabled?: boolean;
@@ -554,6 +559,8 @@ export type RootStackParamList = {
   Chat: undefined;
   Preferences: undefined;
   NotificationSettings: undefined;
+  LoyaltyHistory: undefined;
+  ChangePassword: undefined;
 };
 
 export type MainTabParamList = {

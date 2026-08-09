@@ -147,4 +147,31 @@ describe('Domain API Contract Modules', () => {
       expect(httpClient.post).toHaveBeenCalledWith('/reviews', expect.objectContaining({ overallRating: 5 }));
     });
   });
+
+  describe('Phase B Product Parity Contracts', () => {
+    it('calls PATCH /customers/{id} with preferences payload on updatePreferences', async () => {
+      (httpClient.patch as jest.Mock).mockResolvedValue({ data: { id: 'cust_999' } });
+
+      const prefs = {
+        dietaryRestrictions: ['VEGETARIAN'],
+        allergenAlerts: ['PEANUTS'],
+        spiceLevel: 'MEDIUM',
+        notifyOnOffers: true,
+        notifyOnOrderStatus: true,
+      };
+
+      await customerApi.updatePreferences('cust_999', prefs);
+
+      expect(httpClient.patch).toHaveBeenCalledWith('/customers/cust_999', { preferences: prefs });
+    });
+
+    it('calls GET /delivery/zones with storeId, lat, lng, and check=true', async () => {
+      (httpClient.get as jest.Mock).mockResolvedValue({ data: { inZone: true, distanceKm: 2.5 } });
+
+      const check = await deliveryApi.checkDeliveryZone('DOM001', 17.385, 78.4867);
+
+      expect(httpClient.get).toHaveBeenCalledWith('/delivery/zones?storeId=DOM001&lat=17.385&lng=78.4867&check=true');
+      expect(check.inZone).toBe(true);
+    });
+  });
 });

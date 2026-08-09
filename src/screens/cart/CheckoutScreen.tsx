@@ -29,7 +29,7 @@ import { useSelectedStore } from '../../hooks/useSelectedStore';
 import { Alert } from 'react-native';
 import { PaymentService } from '../../services/paymentService';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { customerApi } from '../../services/api';
+import { customerApi, deliveryApi } from '../../services/api';
 import GuestPromptView from '../../components/GuestPromptView';
 
 type PaymentMethod = 'ONLINE' | 'CASH' | 'UPI';
@@ -176,6 +176,27 @@ const CheckoutScreen: React.FC = () => {
     } catch (err) {
       Alert.alert('Profile Error', 'Could not load your customer profile. Please try again.');
       return;
+    }
+
+    // Delivery radius check
+    if (orderType === 'DELIVERY' && selectedAddress && selectedStoreId) {
+      const lat = selectedAddress.latitude || selectedAddress.coordinates?.latitude;
+      const lng = selectedAddress.longitude || selectedAddress.coordinates?.longitude;
+      if (lat && lng) {
+        try {
+          const zoneCheck = await deliveryApi.checkDeliveryZone(selectedStoreId, lat, lng);
+          if (zoneCheck && zoneCheck.inZone === false) {
+            Alert.alert(
+              'Delivery Unavailable',
+              'The selected delivery address is outside the delivery radius for this store. Please select Takeaway or choose a different address.',
+              [{ text: 'OK' }]
+            );
+            return;
+          }
+        } catch (zoneErr) {
+          console.warn('Delivery zone check failed, proceeding with order:', zoneErr);
+        }
+      }
     }
 
     try {

@@ -198,92 +198,76 @@ const ProfileScreen: React.FC = () => {
 
 
         {/* Loyalty Card */}
-        <View style={[styles.loyaltyCard, { backgroundColor: '#FFD000' }]}>
-          {/* Header */}
-          <View style={styles.loyaltyHeader}>
-            <View>
-              <Text style={styles.loyaltyLabel}>Loyalty Points</Text>
-              <Text style={styles.loyaltyPoints}>
-                {formatNumber(customerData?.loyaltyInfo?.totalPoints ?? 0)}
-              </Text>
-            </View>
-            <View style={styles.loyaltyTierContainer}>
-              <View style={[styles.tierBadge, { backgroundColor: getTierColor(customerData?.loyaltyInfo?.tier) }]}>
-                <Text style={styles.tierBadgeText}>
-                  {customerData?.loyaltyInfo?.tier || 'BRONZE'}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('LoyaltyHistory')}
+        >
+          <View style={[styles.loyaltyCard, { backgroundColor: '#FFD000' }]}>
+            {/* Header */}
+            <View style={styles.loyaltyHeader}>
+              <View>
+                <Text style={styles.loyaltyLabel}>Loyalty Points</Text>
+                <Text style={styles.loyaltyPoints}>
+                  {formatNumber(customerData?.loyaltyInfo?.totalPoints ?? 0)}
                 </Text>
+              </View>
+              <View style={styles.loyaltyTierContainer}>
+                <View style={[styles.tierBadge, { backgroundColor: getTierColor(customerData?.loyaltyInfo?.tier) }]}>
+                  <Text style={styles.tierBadgeText}>
+                    {customerData?.loyaltyInfo?.tier || 'BRONZE'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressLabel}>
+                {getNextTierInfo(customerData?.loyaltyInfo?.tier, customerData?.loyaltyInfo?.totalPoints ?? 0)}
+              </Text>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.min(((customerData?.loyaltyInfo?.totalPoints ?? 0) / 10000) * 100, 100)}%` }
+                  ]}
+                />
+              </View>
+              <View style={styles.milestones}>
+                <Text style={styles.milestoneText}>Bronze{'\n'}0</Text>
+                <Text style={[styles.milestoneText, { textAlign: 'center' }]}>Silver{'\n'}1,000</Text>
+                <Text style={[styles.milestoneText, { textAlign: 'center' }]}>Gold{'\n'}5,000</Text>
+                <Text style={[styles.milestoneText, { textAlign: 'right' }]}>Platinum{'\n'}10,000</Text>
+              </View>
+            </View>
+
+            {/* Stats */}
+            <View style={styles.loyaltyStats}>
+              <View style={styles.loyaltyStat}>
+                <Text style={styles.loyaltyStatValue}>
+                  {customerData?.orderStats?.totalOrders ?? 0}
+                </Text>
+                <Text style={styles.loyaltyStatLabel}>Orders</Text>
+              </View>
+              <View style={styles.loyaltyStat}>
+                <Text style={styles.loyaltyStatValue}>
+                  {customerData?.orderStats?.totalSpent
+                    ? `₹${formatNumber(customerData.orderStats.totalSpent)}`
+                    : '₹0'}
+                </Text>
+                <Text style={styles.loyaltyStatLabel}>Spent</Text>
+              </View>
+              <View style={styles.loyaltyStat}>
+                <Text style={styles.loyaltyStatValue}>
+                  {customerData?.orderStats?.averageOrderValue
+                    ? `₹${formatNumber(customerData.orderStats.averageOrderValue)}`
+                    : '₹0'}
+                </Text>
+                <Text style={styles.loyaltyStatLabel}>Avg Order</Text>
               </View>
             </View>
           </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>
-              {getNextTierInfo(customerData?.loyaltyInfo?.tier, customerData?.loyaltyInfo?.totalPoints ?? 0)}
-            </Text>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${Math.min(((customerData?.loyaltyInfo?.totalPoints ?? 0) / 10000) * 100, 100)}%` }
-                ]}
-              />
-            </View>
-            <View style={styles.milestones}>
-              <Text style={styles.milestoneText}>Bronze{'\n'}0</Text>
-              <Text style={[styles.milestoneText, { textAlign: 'center' }]}>Silver{'\n'}1,000</Text>
-              <Text style={[styles.milestoneText, { textAlign: 'center' }]}>Gold{'\n'}5,000</Text>
-              <Text style={[styles.milestoneText, { textAlign: 'right' }]}>Platinum{'\n'}10,000</Text>
-            </View>
-          </View>
-
-          {/* Stats */}
-          <View style={styles.loyaltyStats}>
-            <View style={styles.loyaltyStat}>
-              <Text style={styles.loyaltyStatValue}>
-                {customerData?.orderStats?.totalOrders ?? 0}
-              </Text>
-              <Text style={styles.loyaltyStatLabel}>Orders</Text>
-            </View>
-            <View style={styles.loyaltyStat}>
-              <Text style={styles.loyaltyStatValue}>
-                {customerData?.orderStats?.totalSpent
-                  ? `₹${formatNumber(customerData.orderStats.totalSpent)}`
-                  : '₹0'}
-              </Text>
-              <Text style={styles.loyaltyStatLabel}>Spent</Text>
-            </View>
-            <View style={styles.loyaltyStat}>
-              <Text style={styles.loyaltyStatValue}>
-                {customerData?.orderStats?.averageOrderValue
-                  ? `₹${formatNumber(customerData.orderStats.averageOrderValue)}`
-                  : '₹0'}
-              </Text>
-              <Text style={styles.loyaltyStatLabel}>Avg Order</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Allergen Alerts */}
-        {customerData?.preferences?.allergenAlerts && customerData.preferences.allergenAlerts.length > 0 && (
-          <Card elevation="sm" style={styles.menuCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-              My Allergen Alerts
-            </Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.colors.text2 }]}>
-              We'll warn you if any item contains these
-            </Text>
-            <View style={styles.allergenChips}>
-              {(customerData.preferences.allergenAlerts as AllergenType[]).map((a) => (
-                <View key={a} style={[styles.allergenChip, { backgroundColor: theme.colors.surface1, borderColor: '#A0A0A0' }]}>
-                  <Text style={[styles.allergenChipText, { color: theme.colors.text2 }]}>
-                    {ALLERGEN_LABELS[a] ?? a}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </Card>
-        )}
+        </TouchableOpacity>
 
         {/* Menu Sections */}
         <Card elevation="sm" style={styles.menuCard}>
@@ -300,15 +284,15 @@ const ProfileScreen: React.FC = () => {
             theme={theme}
           />
           <MenuItem
-            icon="card-outline"
-            label="Payment Methods"
-            onPress={() => {}}
+            icon="nutrition-outline"
+            label="Food & Dietary Preferences"
+            onPress={() => navigation.navigate('Preferences')}
             theme={theme}
           />
           <MenuItem
-            icon="pricetag-outline"
-            label="My Coupons"
-            onPress={() => {}}
+            icon="gift-outline"
+            label="Loyalty & Points History"
+            onPress={() => navigation.navigate('LoyaltyHistory')}
             theme={theme}
           />
         </Card>
@@ -318,6 +302,18 @@ const ProfileScreen: React.FC = () => {
             icon="notifications-outline"
             label="Notifications"
             onPress={() => navigation.navigate('Notifications')}
+            theme={theme}
+          />
+          <MenuItem
+            icon="options-outline"
+            label="Notification Settings"
+            onPress={() => navigation.navigate('NotificationSettings')}
+            theme={theme}
+          />
+          <MenuItem
+            icon="key-outline"
+            label="Change Password"
+            onPress={() => navigation.navigate('ChangePassword')}
             theme={theme}
           />
           <MenuItem
