@@ -1,83 +1,75 @@
 # MaSoVa Mobile Customer App
 
-React Native + Expo mobile application for the MaSoVa Restaurant Management System.
+Production-grade customer mobile application for the MaSoVa Restaurant Management System built with **React Native (Bare Workflow - NOT Expo Go)**.
 
-## Design System
+## Architecture & Tech Stack
 
-Uses **Glassmorphism + Material You Hybrid** design:
-- Frosted glass surfaces with blur effects
-- MaSoVa brand red (#E53E3E) gradients
-- Light/Dark theme support
-- Haptic feedback on interactions
+- **Framework:** React Native `0.81.5` bare workflow
+- **Metro Port:** `8888` (defaulted in all package scripts)
+- **State & Data Fetching:** `@tanstack/react-query` v5, Axios
+- **Navigation:** `@react-navigation/native` v7
+- **Security:** `react-native-keychain` for access & refresh tokens
+- **Design System:** Glassmorphism (`expo-blur`, `expo-linear-gradient`, `expo-haptics`)
 
-## Getting Started
+## Testing Device Standard
 
-### Prerequisites
+- **Physical Device:** Samsung Galaxy Z Flip 5 over USB (**Primary standard — not emulator**)
+- **Connect Device:** Enable USB Debugging on phone, plug via USB, confirm `adb devices`
+- **Reverse Port:** `adb reverse tcp:8888 tcp:8888` (allows physical device to reach Metro on `:8888`)
 
-- Node.js 18+
-- Expo CLI (`npm install -g expo-cli`)
-- iOS Simulator (Mac) or Android Emulator
+## Quick Start
 
-### Installation
+### 1. Installation
 
 ```bash
 npm install
 ```
 
-### Running the App
+### 2. Environment Setup
+
+Copy `.env.example` to `.env`:
 
 ```bash
-# Start development server
-npx expo start
-
-# Run on iOS Simulator
-npx expo start --ios
-
-# Run on Android Emulator
-npx expo start --android
+cp .env.example .env
 ```
 
-## Project Structure
+Default backend development gateway: `http://192.168.50.88:8080/api` (Dell host).
 
+### 3. Development Commands
+
+```bash
+# Start Metro bundler on port 8888
+npm start
+
+# Run on physical Android device (over USB)
+npm run android
+
+# Run on iOS device / simulator
+npm run ios
+
+# TypeScript check
+npm run typecheck
+
+# ESLint check
+npm run lint
+
+# Run Unit & Contract Tests
+npm test
+
+# Clean Android build artifacts
+npm run clean
+
+# Build Android Release APK
+npm run build:android
 ```
-src/
-├── components/ui/       # Reusable UI components
-├── hooks/              # React hooks (useTheme)
-├── navigation/         # React Navigation setup
-├── screens/            # App screens
-│   ├── auth/          # Login, Register
-│   ├── home/          # Home, Search, Notifications
-│   ├── menu/          # Menu browsing, Item detail
-│   ├── cart/          # Cart, Checkout
-│   ├── order/         # Tracking, History
-│   └── profile/       # Profile, Addresses
-├── services/          # API layer
-├── styles/            # Design tokens & theme
-└── types/             # TypeScript definitions
-```
 
-## Backend Configuration
+## Documentation Set
 
-Update `src/services/api.ts` BASE_URL for your backend:
-
-```typescript
-const BASE_URL = 'http://your-backend:8080/api';
-```
-
-## Features
-
-- Browse menu with filters
-- Item customization (variants, toppings)
-- Cart management with coupon support
-- Order placement & tracking
-- User profile & saved addresses
-- Push notification ready
-
-## Tech Stack
-
-- React Native + Expo
-- TypeScript
-- React Navigation
-- React Query
-- Axios
-- Expo Blur, Haptics, Linear Gradient
+- [Architecture & System Map](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/ARCHITECTURE.md)
+- [API Contract Reference](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/API_CONTRACT.md)
+- [Environments & Setup](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/ENVIRONMENTS.md)
+- [Testing & Quality Gates](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/TESTING.md)
+- [Security Baseline](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/SECURITY.md)
+- [Support Runbook](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/RUNBOOK.md)
+- [Release Guide](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/RELEASE.md)
+- [Contributing Guidelines](file:///Users/souravamseekarmarti/Projects/masova-mobile/CONTRIBUTING.md)
