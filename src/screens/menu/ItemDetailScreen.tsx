@@ -19,6 +19,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
+import { CONFIG } from '../../config';
 import { useTheme } from '../../hooks/useTheme';
 import { useMenuItem } from '../../hooks/useMenuQueries';
 import { useCart } from '../../contexts/CartContext';
@@ -97,12 +98,12 @@ const ItemDetailScreen: React.FC = () => {
   // Fetch item from API
   const { data: item, isLoading, isError, error } = useMenuItem(route.params.itemId);
 
-  // Use API data if available, fallback to mock data
-  const menuItem = item || MOCK_ITEM;
+  // Use API data if available, fallback to mock data only if enabled
+  const menuItem = item || (CONFIG.ENABLE_MOCK_FALLBACK ? MOCK_ITEM : null);
 
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<MenuVariant | null>(
-    menuItem.variants?.[0] || null
+    menuItem?.variants?.[0] || null
   );
   const [selectedOptions, setSelectedOptions] = useState<Map<string, CustomizationOption[]>>(
     new Map()
@@ -112,6 +113,7 @@ const ItemDetailScreen: React.FC = () => {
   const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
 
   const calculateTotalPrice = () => {
+    if (!menuItem) return 0;
     let total = menuItem.discountedPrice || menuItem.basePrice;
 
     if (selectedVariant) {
@@ -156,6 +158,7 @@ const ItemDetailScreen: React.FC = () => {
   };
 
   const handleAddToCart = () => {
+    if (!menuItem) return;
     // Add item to cart with selected options
     addItem(
       menuItem,
@@ -180,8 +183,8 @@ const ItemDetailScreen: React.FC = () => {
     );
   }
 
-  // Error state
-  if (isError) {
+  // Error or Not Found state
+  if (isError || !menuItem) {
     return (
       <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.bg }]}>
         <Ionicons name="alert-circle-outline" size={64} color={theme.colors.semantic.error} />
@@ -189,7 +192,7 @@ const ItemDetailScreen: React.FC = () => {
           Failed to load item
         </Text>
         <Text style={[styles.errorSubtitle, { color: theme.colors.text2 }]}>
-          {error?.message || 'Please try again'}
+          {error?.message || 'Item details unavailable. Please try again'}
         </Text>
         <Button
           title="Go Back"

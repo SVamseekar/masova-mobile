@@ -37,16 +37,7 @@ export const customerApi = {
   },
 
   getOrCreate: async (userData: { userId: string; name: string; email: string; phone?: string }): Promise<Customer> => {
-    try {
-      return await customerApi.getByUserId(userData.userId);
-    } catch {
-      // Fallback: search by email
-      const response = await httpClient.get<Customer[]>(`/customers?email=${encodeURIComponent(userData.email)}`);
-      if (response.data && response.data.length > 0) {
-        return response.data[0];
-      }
-      throw new Error(`Customer record not found for user ${userData.userId}`);
-    }
+    return customerApi.getByUserId(userData.userId);
   },
 
   updateProfile: async (id: string, data: Partial<Customer>): Promise<Customer> => {

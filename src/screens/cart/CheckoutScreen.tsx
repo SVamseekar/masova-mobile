@@ -30,6 +30,7 @@ import { Alert } from 'react-native';
 import { PaymentService } from '../../services/paymentService';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { customerApi } from '../../services/api';
+import GuestPromptView from '../../components/GuestPromptView';
 
 type PaymentMethod = 'ONLINE' | 'CASH' | 'UPI';
 type OrderType = 'DELIVERY' | 'TAKEAWAY';
@@ -157,50 +158,23 @@ const CheckoutScreen: React.FC = () => {
     }
 
     // Determine customer info from either authenticated user or guest info
+    if (!isAuthenticated || !user) {
+      Alert.alert('Sign In Required', 'Please sign in to place an order.');
+      return;
+    }
+
     let customerData: { id: string; name: string; email: string; phone: string };
 
-    if (isAuthenticated && user) {
-      try {
-        const customer = await customerApi.getByUserId(user.id);
-        customerData = {
-          id: customer.id,
-          name: customer.name || user.name,
-          email: customer.email || user.email,
-          phone: customer.phone || user.phone || '',
-        };
-      } catch (err) {
-        customerData = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone || '',
-        };
-      }
-    } else if (guestInfo) {
-      try {
-        const customer = await customerApi.getOrCreate({
-          userId: `guest_${guestInfo.email.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          email: guestInfo.email,
-          phone: guestInfo.phone,
-          name: guestInfo.name,
-        });
-        customerData = {
-          id: customer.id,
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone || '',
-        };
-      } catch (error: any) {
-        customerData = {
-          id: `guest_${Date.now()}`,
-          name: guestInfo.name,
-          email: guestInfo.email,
-          phone: guestInfo.phone,
-        };
-      }
-    } else {
-      // No user and no guest info - shouldn't happen, but handle it
-      Alert.alert('Error', 'Please provide your details to place an order.');
+    try {
+      const customer = await customerApi.getByUserId(user.id);
+      customerData = {
+        id: customer.id,
+        name: customer.name || user.name,
+        email: customer.email || user.email,
+        phone: customer.phone || user.phone || '',
+      };
+    } catch (err) {
+      Alert.alert('Profile Error', 'Could not load your customer profile. Please try again.');
       return;
     }
 
@@ -430,6 +404,16 @@ const CheckoutScreen: React.FC = () => {
       </TouchableOpacity>
     );
   };
+
+  if (!isAuthenticated || !user) {
+    return (
+      <GuestPromptView
+        screenName="Checkout"
+        icon="cart-outline"
+        description="Sign in to your MaSoVa account to choose delivery options and place your order."
+      />
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>

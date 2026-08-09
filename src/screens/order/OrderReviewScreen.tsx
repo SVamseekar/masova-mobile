@@ -24,6 +24,8 @@ import { spacing, borderRadius, typography } from '../../styles';
 import { Button, Card } from '../../components/ui';
 import { RootStackParamList } from '../../types';
 
+import { reviewApi } from '../../services/api';
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'OrderReview'>;
 
@@ -83,17 +85,11 @@ const OrderReviewScreen: React.FC = () => {
     try {
       setIsSubmitting(true);
 
-      // TODO: Submit review to API
-      // await reviewApi.submitReview({
-      //   orderId,
-      //   rating: overallRating,
-      //   foodRating,
-      //   deliveryRating,
-      //   comment,
-      // });
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await reviewApi.create({
+        orderId,
+        overallRating,
+        comment: comment.trim() || undefined,
+      });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -111,7 +107,7 @@ const OrderReviewScreen: React.FC = () => {
       console.error('Failed to submit review:', error);
       Alert.alert(
         'Error',
-        'Failed to submit review. Please try again.',
+        error?.message || 'Failed to submit review. Please try again.',
         [{ text: 'OK' }]
       );
     } finally {

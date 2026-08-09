@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 
+import { CONFIG } from '../../config';
 import { useTheme } from '../../hooks/useTheme';
 import { useMenuItems } from '../../hooks/useMenuQueries';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
@@ -468,7 +469,7 @@ const MenuScreen: React.FC = () => {
   const [sortBy, setSortBy] = useState<'popular' | 'price_low' | 'price_high'>('popular');
 
   // Fetch menu items from API
-  const { data: menuItems, isLoading, isError, error } = useMenuItems({
+  const { data: menuItems, isLoading, isError, error, refetch } = useMenuItems({
     cuisine: selectedCuisine,
     category: selectedCategory || undefined,
   });
@@ -480,9 +481,10 @@ const MenuScreen: React.FC = () => {
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
-    // Use API data - only fallback to mock data if API fails and we have no data
-    const hasApiData = menuItems && menuItems.length > 0;
-    let items = [...(hasApiData ? menuItems : MOCK_MENU_ITEMS)];
+    // Only fallback to mock data if ENABLE_MOCK_FALLBACK is explicitly enabled in dev mode
+    const hasApiData = Array.isArray(menuItems) && menuItems.length > 0;
+    const allowMock = CONFIG.ENABLE_MOCK_FALLBACK;
+    let items = [...(hasApiData ? menuItems : allowMock ? MOCK_MENU_ITEMS : (menuItems || []))];
 
     // Deduplicate items by name (keep first occurrence)
     // This handles cases where duplicate items exist in the database
@@ -809,6 +811,7 @@ const MenuScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: '#FFD000' }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              refetch();
             }}
           >
             <Text style={styles.retryButtonText}>Retry</Text>

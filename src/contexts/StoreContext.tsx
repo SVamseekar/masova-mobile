@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { Store } from '../types';
 
+import { setClientSelectedStoreContext } from '../services/http/client';
+
 const SELECTED_STORE_KEY = '@masova_selected_store';
 
 interface StoreContextType {
@@ -29,6 +31,12 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
 
+  // Keep HTTP client header context in sync with selected store
+  useEffect(() => {
+    const storeIdOrCode = selectedStore?.storeCode || selectedStore?.id || null;
+    setClientSelectedStoreContext(storeIdOrCode);
+  }, [selectedStore]);
+
   // Load selected store from storage on mount
   useEffect(() => {
     loadSelectedStore();
@@ -40,6 +48,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
       if (storedData) {
         const store = JSON.parse(storedData);
         setSelectedStoreState(store);
+        setClientSelectedStoreContext(store.storeCode || store.id || null);
       }
     } catch (err) {
       console.error('Failed to load selected store:', err);
@@ -56,6 +65,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         await AsyncStorage.removeItem(SELECTED_STORE_KEY);
       }
       setSelectedStoreState(store);
+      setClientSelectedStoreContext(store?.storeCode || store?.id || null);
 
       // Invalidate menu queries when store changes to force refetch
       queryClient.invalidateQueries({ queryKey: ['menu'] });

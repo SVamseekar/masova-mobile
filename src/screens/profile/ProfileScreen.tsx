@@ -116,30 +116,15 @@ const ProfileScreen: React.FC = () => {
   const [customerData, setCustomerData] = useState<Customer | null>(null);
 
   const fetchCustomerData = useCallback(async () => {
-    if (!user?.id || !user?.email || !user?.name) return;
+    if (!user?.id) return;
 
     try {
       const customer = await customerApi.getByUserId(user.id);
       setCustomerData(customer);
     } catch (err: any) {
-      // If customer doesn't exist (404), try to create one
-      if (err?.response?.status === 404) {
-        try {
-          const newCustomer = await customerApi.getOrCreate({
-            userId: user.id,
-            email: user.email,
-            name: user.name,
-            phone: user.phone || '9999999999',
-          });
-          setCustomerData(newCustomer);
-        } catch (createErr) {
-          console.error('Failed to create customer:', createErr);
-        }
-      } else {
-        console.error('Failed to fetch customer data:', err);
-      }
+      console.error('Failed to fetch customer data:', err);
     }
-  }, [user?.id, user?.email, user?.name, user?.phone]);
+  }, [user?.id]);
 
   // Fetch customer data on mount, when screen gains focus, and when user logs in
   useFocusEffect(

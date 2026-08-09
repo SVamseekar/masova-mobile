@@ -49,13 +49,8 @@ const OrderHistoryScreen: React.FC = () => {
 
     try {
       setError(null);
-      let customerId = user.id;
-      try {
-        const customer = await customerApi.getByUserId(user.id);
-        customerId = customer.id;
-      } catch {
-        // Fallback to user.id if customer profile query fails
-      }
+      const customer = await customerApi.getByUserId(user.id);
+      const customerId = customer.id;
 
       const response = await orderApi.getCustomerOrders(customerId);
       const rawOrders = Array.isArray(response) ? response : (response as any).content || [];
