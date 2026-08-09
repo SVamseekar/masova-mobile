@@ -1,61 +1,62 @@
 /**
- * Saved Screen
- * Favorite items
+ * Saved Screen — favorites from device storage (+ optional backend preference sync)
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
-import { spacing, borderRadius, typography, shadows } from '../../styles';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
+import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Button } from '../../components/ui';
-import { RootStackParamList, MenuItem } from '../../types';
+import { MenuDishImage } from '../../components/menu/MenuDishImage';
+import { RootStackParamList } from '../../types';
 import GuestPromptView from '../../components/GuestPromptView';
-
-// Mock saved items
-const MOCK_SAVED: Partial<MenuItem>[] = [
-  {
-    id: '1',
-    name: 'Margherita Pizza',
-    description: 'Classic Italian pizza with fresh mozzarella',
-    basePrice: 34900,
-    discountedPrice: 29900,
-    imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400',
-    rating: 4.5,
-    dietaryInfo: ['VEGETARIAN'],
-  },
-  {
-    id: '3',
-    name: 'Chicken Biryani',
-    description: 'Aromatic basmati rice with tender chicken',
-    basePrice: 28900,
-    imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400',
-    rating: 4.8,
-  },
-];
+import { favoritesService, FavoriteSnapshot } from '../../services/favoritesService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const SavedScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { formatMoney } = useStoreCurrency();
+  const formatPrice = formatMoney;
+  const [items, setItems] = useState<FavoriteSnapshot[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Show guest prompt if not authenticated
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await favoritesService.getAll();
+      setItems(list);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        load();
+      }
+    }, [isAuthenticated, load])
+  );
+
   if (!isAuthenticated) {
     return (
       <GuestPromptView
@@ -66,225 +67,158 @@ const SavedScreen: React.FC = () => {
     );
   }
 
-  const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
-
-  const handleRemove = (itemId: string) => {
+  const handleRemove = async (itemId: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    // Remove from saved
+    await favoritesService.remove(itemId);
+    setItems((prev) => prev.filter((i) => i.id !== itemId));
+    if (user?.id) {
+      void favoritesService.syncToCustomer(user.id);
+    }
   };
 
-  const renderItem = ({ item }: { item: Partial<MenuItem> }) => (
+  const renderItem = ({ item }: { item: FavoriteSnapshot }) => (
     <TouchableOpacity
       activeOpacity={0.9}
-      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id! })}
+      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
     >
       <Card elevation="sm" style={styles.itemCard}>
-        <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+        <MenuDishImage
+          name={item.name}
+          imageUrl={item.imageUrl}
+          style={styles.itemImage}
+          placeholderColor={theme.colors.surface2}
+          iconColor={theme.colors.text3}
+        />
         <View style={styles.itemContent}>
           <View style={styles.itemHeader}>
-            <View style={styles.itemTitleRow}>
-              {item.dietaryInfo?.includes('VEGETARIAN') && (
-                <View style={[styles.vegBadge, { borderColor: theme.colors.semantic.success }]}>
-                  <View style={[styles.vegDot, { backgroundColor: theme.colors.semantic.success }]} />
-                </View>
-              )}
-              <Text
-                style={[styles.itemName, { color: theme.colors.text1 }]}
-                numberOfLines={1}
-              >
-                {item.name}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => handleRemove(item.id!)}
-              style={styles.removeButton}
-            >
-              <Ionicons name="heart" size={22} color={'#FFD000'} />
+            <Text style={[styles.itemName, { color: theme.colors.text1 }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <TouchableOpacity onPress={() => handleRemove(item.id)} style={styles.removeButton}>
+              <Ionicons name="heart" size={20} color={theme.colors.semantic.error} />
             </TouchableOpacity>
           </View>
-          <Text
-            style={[styles.itemDescription, { color: theme.colors.text2 }]}
-            numberOfLines={1}
-          >
-            {item.description}
+          {item.description ? (
+            <Text style={[styles.itemDesc, { color: theme.colors.text2 }]} numberOfLines={2}>
+              {item.description}
+            </Text>
+          ) : null}
+          <Text style={[styles.itemPrice, { color: theme.colors.text1 }]}>
+            {formatPrice(item.discountedPrice ?? item.basePrice)}
           </Text>
-          <View style={styles.itemFooter}>
-            <View style={styles.priceRow}>
-              <Text style={[styles.price, { color: theme.colors.text1 }]}>
-                {formatPrice(item.discountedPrice || item.basePrice!)}
-              </Text>
-              {item.discountedPrice && (
-                <Text style={[styles.originalPrice, { color: theme.colors.text3 }]}>
-                  {formatPrice(item.basePrice!)}
-                </Text>
-              )}
-            </View>
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color="#F59E0B" />
-              <Text style={[styles.rating, { color: theme.colors.text2 }]}>
-                {item.rating}
-              </Text>
-            </View>
-          </View>
         </View>
       </Card>
     </TouchableOpacity>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.bg, paddingTop: insets.top }]}>
+      <View style={styles.header}>
         <Text style={[styles.title, { color: theme.colors.text1 }]}>Saved</Text>
-        <Text style={[styles.itemCount, { color: theme.colors.text2 }]}>
-          {MOCK_SAVED.length} items
+        <Text style={[styles.subtitle, { color: theme.colors.text2 }]}>
+          {items.length} {items.length === 1 ? 'item' : 'items'}
         </Text>
       </View>
 
-      <FlatList
-        data={MOCK_SAVED}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id!}
-        contentContainerStyle={[styles.listContent, { paddingBottom: 120 }]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="heart-outline" size={64} color={theme.colors.text3} />
-            <Text style={[styles.emptyTitle, { color: theme.colors.text1 }]}>
-              No saved items
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: theme.colors.text2 }]}>
-              Tap the heart icon on items to save them here
-            </Text>
-            <Button
-              title="Browse Menu"
-              onPress={() => navigation.navigate('Main', { screen: 'Search' } as any)}
-              style={styles.browseButton}
-            />
-          </View>
-        }
-      />
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: spacing[8] }} color="#FFD000" />
+      ) : items.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="heart-outline" size={56} color={theme.colors.text3} />
+          <Text style={[styles.emptyTitle, { color: theme.colors.text1 }]}>No saved dishes yet</Text>
+          <Text style={[styles.emptySub, { color: theme.colors.text2 }]}>
+            Tap the heart on any menu item to save it here.
+          </Text>
+          <Button
+            title="Browse menu"
+            onPress={() => navigation.navigate('Main', { screen: 'Search', params: {} })}
+            style={{ marginTop: spacing[4] }}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.screenPadding,
-    paddingBottom: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
   },
   title: {
-    fontSize: typography.fontSize.headline,
-    fontWeight: typography.fontWeight.bold,
+    fontSize: typography.fontSize.title,
     fontFamily: 'PlusJakartaSans-Bold',
   },
-  itemCount: {
-    fontSize: typography.fontSize.body,
+  subtitle: {
+    fontSize: typography.fontSize.caption,
+    marginTop: 4,
   },
-  listContent: {
-    padding: spacing.screenPadding,
-    gap: spacing[4],
+  list: {
+    padding: spacing[4],
+    paddingBottom: spacing[10],
+    gap: spacing[3],
   },
   itemCard: {
-    padding: 0,
+    flexDirection: 'row',
     overflow: 'hidden',
+    marginBottom: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   itemImage: {
-    width: '100%',
-    height: 160,
+    width: 96,
+    height: 96,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   itemContent: {
-    padding: spacing[4],
+    flex: 1,
+    padding: spacing[3],
   },
   itemHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  itemTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing[2],
-  },
-  vegBadge: {
-    width: 16,
-    height: 16,
-    borderWidth: 1.5,
-    borderRadius: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  vegDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   itemName: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
-    fontFamily: 'PlusJakartaSans-SemiBold',
     flex: 1,
-  },
-  removeButton: {
-    padding: spacing[1],
-  },
-  itemDescription: {
-    fontSize: typography.fontSize.bodySm,
-    marginTop: spacing[1],
-    marginBottom: spacing[3],
-  },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  price: {
     fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.bold,
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    marginRight: spacing[2],
   },
-  originalPrice: {
-    fontSize: typography.fontSize.bodySm,
-    textDecorationLine: 'line-through',
+  removeButton: { padding: 4 },
+  itemDesc: {
+    fontSize: typography.fontSize.caption,
+    marginTop: 4,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
+  itemPrice: {
+    marginTop: spacing[2],
+    fontFamily: 'PlusJakartaSans-SemiBold',
   },
-  rating: {
-    fontSize: typography.fontSize.bodySm,
-  },
-  emptyContainer: {
+  empty: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: spacing[20],
+    padding: spacing[6],
   },
   emptyTitle: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
+    fontSize: typography.fontSize.title,
     fontFamily: 'PlusJakartaSans-SemiBold',
-    marginTop: spacing[4],
+    marginTop: spacing[3],
   },
-  emptySubtitle: {
-    fontSize: typography.fontSize.body,
+  emptySub: {
     textAlign: 'center',
     marginTop: spacing[2],
-    paddingHorizontal: spacing[8],
-  },
-  browseButton: {
-    marginTop: spacing[6],
+    lineHeight: 20,
   },
 });
 

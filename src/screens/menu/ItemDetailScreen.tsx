@@ -3,7 +3,7 @@
  * Full item view with variants and customizations
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MenuDishImage } from '../../components/menu/MenuDishImage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,11 +22,15 @@ import * as Haptics from 'expo-haptics';
 import { CONFIG } from '../../config';
 import { useTheme } from '../../hooks/useTheme';
 import { useMenuItem } from '../../hooks/useMenuQueries';
+import { useSelectedStore } from '../../hooks/useSelectedStore';
 import { useCart } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Badge, QuantitySelector, Card } from '../../components/ui';
 import { RootStackParamList, MenuItem, MenuVariant, CustomizationOption } from '../../types';
 import { AllergenType, ALLERGEN_LABELS } from '../../constants/allergens';
+import { favoritesService } from '../../services/favoritesService';
+import { formatMenuPrice } from '../../utils/menuDisplay';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = SCREEN_HEIGHT * 0.4;
@@ -94,6 +98,9 @@ const ItemDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<ItemDetailRouteProp>();
   const { addItem } = useCart();
+  const { selectedStore } = useSelectedStore();
+  const currency = selectedStore?.currency;
+  const locale = selectedStore?.locale;
 
   // Fetch item from API
   const { data: item, isLoading, isError, error } = useMenuItem(route.params.itemId);
@@ -109,11 +116,19 @@ const ItemDetailScreen: React.FC = () => {
     new Map()
   );
   const [isFavorite, setIsFavorite] = useState(false);
+  const { user } = useAuth();
 
-  const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
+  useEffect(() => {
+    if (menuItem?.id) {
+      favoritesService.isFavorite(menuItem.id).then(setIsFavorite);
+    }
+  }, [menuItem?.id]);
+
+  const formatPrice = (price: number) => formatMenuPrice(price, currency, locale);
 
   const calculateTotalPrice = () => {
     if (!menuItem) return 0;
+    // Keep arithmetic in the same units as API (minor when >= 100)
     let total = menuItem.discountedPrice || menuItem.basePrice;
 
     if (selectedVariant) {
@@ -159,7 +174,6 @@ const ItemDetailScreen: React.FC = () => {
 
   const handleAddToCart = () => {
     if (!menuItem) return;
-    // Add item to cart with selected options
     addItem(
       menuItem,
       quantity,
@@ -167,9 +181,9 @@ const ItemDetailScreen: React.FC = () => {
       selectedOptions
     );
 
-    // Haptic feedback and navigate back
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    navigation.goBack();
+    // Food-app pattern: land on cart so totals/currency are obvious
+    (navigation as any).navigate('Cart');
   };
 
   // Loading state
@@ -207,12 +221,10 @@ const ItemDetailScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       {/* Header Image */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: menuItem.imageUrl }}
+        <MenuDishImage
+          name={menuItem.name}
+          imageUrl={menuItem.imageUrl}
           style={styles.image}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          transition={200}
         />
         <LinearGradient
           colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent']}
@@ -229,10 +241,16 @@ const ItemDetailScreen: React.FC = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: theme.colors.surface2 }]}
-            onPress={() => {
+            onPress={async () => {
+              if (!menuItem) return;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setIsFavorite(!isFavorite);
+              const nowFav = await favoritesService.toggle(menuItem);
+              setIsFavorite(nowFav);
+              if (user?.id) {
+                void favoritesService.syncToCustomer(user.id);
+              }
             }}
+            accessibilityLabel={isFavorite ? 'Remove from saved' : 'Save item'}
           >
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}

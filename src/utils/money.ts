@@ -1,47 +1,104 @@
 /**
- * Money and Currency Utilities
- * Formats monetary amounts in paise / cents or standard currency representations.
+ * Money utilities — MaSoVa platform customer app.
+ *
+ * Platform DOM stores use EUR with amounts often in minor units (cents):
+ *   890 → €8.90
+ * Amounts already in major units (< 100 absolute, or fractional) stay as-is.
+ *
+ * Default currency is EUR (not INR). Always pass store.currency when available.
  */
 
-/**
- * Formats base price in paise/cents (integer) to display string with rupee symbol.
- * Example: 12900 -> "₹129", 0 -> "₹0"
- */
-export const formatPrice = (priceInCents: number): string => {
-  if (isNaN(priceInCents) || priceInCents === null || priceInCents === undefined) {
-    return '₹0';
-  }
-  const mainCurrency = priceInCents / 100;
-  return `₹${mainCurrency.toFixed(0)}`;
-};
+export const DEFAULT_CURRENCY = 'EUR';
+export const DEFAULT_LOCALE = 'de-DE';
+
+export function resolveLocale(currency?: string, locale?: string): string {
+  if (locale) return locale;
+  const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
+  if (cur === 'EUR') return 'de-DE';
+  if (cur === 'INR') return 'en-IN';
+  if (cur === 'USD' || cur === 'GBP') return 'en-US';
+  return DEFAULT_LOCALE;
+}
 
 /**
- * Formats standard amount (number) to currency display with decimal precision.
- * Example: 129.5 -> "₹129.50"
+ * Convert API amount to major currency units for display/math.
+ * Heuristic aligned with seeded DOM menus (integer cents >= 100).
  */
-export const formatCurrency = (amount: number, currencySymbol: string = '₹'): string => {
-  if (isNaN(amount) || amount === null || amount === undefined) {
-    return `${currencySymbol}0.00`;
-  }
-  return `${currencySymbol}${amount.toFixed(2)}`;
-};
+export function toMajorUnits(amount: number | undefined | null): number {
+  if (amount == null || Number.isNaN(Number(amount))) return 0;
+  const n = Number(amount);
+  if (Math.abs(n) >= 100 && Number.isInteger(n)) return n / 100;
+  return n;
+}
 
 /**
- * Converts cents/paise to standard currency units (e.g. 1500 -> 15.00)
+ * Format a price that may be in minor or major units.
+ * Example: formatPrice(890, 'EUR') → "8,90 €" (de-DE)
  */
-export const centsToRupees = (cents: number): number => {
-  if (isNaN(cents) || cents === null || cents === undefined) {
-    return 0;
+export function formatPrice(
+  amount: number | undefined | null,
+  currency: string = DEFAULT_CURRENCY,
+  locale?: string
+): string {
+  const major = toMajorUnits(amount);
+  const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
+  const loc = resolveLocale(cur, locale);
+  try {
+    return new Intl.NumberFormat(loc, {
+      style: 'currency',
+      currency: cur,
+      maximumFractionDigits: 2,
+    }).format(major);
+  } catch {
+    return `${cur} ${major.toFixed(2)}`;
   }
-  return cents / 100;
-};
+}
 
 /**
- * Converts rupees to cents/paise (e.g. 15.5 -> 1550)
+ * Format an amount already in major units (e.g. order totals from some APIs).
  */
-export const rupeesToCents = (rupees: number): number => {
-  if (isNaN(rupees) || rupees === null || rupees === undefined) {
-    return 0;
+export function formatMajor(
+  amount: number | undefined | null,
+  currency: string = DEFAULT_CURRENCY,
+  locale?: string
+): string {
+  if (amount == null || Number.isNaN(Number(amount))) {
+    return formatPrice(0, currency, locale);
   }
-  return Math.round(rupees * 100);
-};
+  const cur = (currency || DEFAULT_CURRENCY).toUpperCase();
+  const loc = resolveLocale(cur, locale);
+  try {
+    return new Intl.NumberFormat(loc, {
+      style: 'currency',
+      currency: cur,
+      maximumFractionDigits: 2,
+    }).format(Number(amount));
+  } catch {
+    return `${cur} ${Number(amount).toFixed(2)}`;
+  }
+}
+
+/** @deprecated Prefer formatPrice / formatMajor — kept for tests & call sites */
+export function formatCurrency(
+  amount: number,
+  currencyOrSymbol: string = DEFAULT_CURRENCY
+): string {
+  // If caller passed a symbol like "€", fall back to EUR
+  if (currencyOrSymbol.length === 1 || currencyOrSymbol === '₹') {
+    const cur = currencyOrSymbol === '₹' ? 'INR' : currencyOrSymbol === '€' ? 'EUR' : DEFAULT_CURRENCY;
+    return formatMajor(amount, cur);
+  }
+  return formatMajor(amount, currencyOrSymbol);
+}
+
+export const centsToMajor = toMajorUnits;
+/** @deprecated name — use toMajorUnits */
+export const centsToRupees = toMajorUnits;
+
+export function majorToMinor(major: number): number {
+  if (isNaN(major) || major == null) return 0;
+  return Math.round(major * 100);
+}
+
+/** @deprecated name — use majorToMinor */
+export const rupeesToCents = majorToMinor;

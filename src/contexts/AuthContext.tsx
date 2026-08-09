@@ -37,13 +37,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       await migrateLegacyTokens();
-      const isAuth = await authApi.isAuthenticated();
-      if (isAuth) {
-        const storedUser = await authApi.getCurrentUser();
+      // Restores user from storage + sets X-User-Id client context (no /auth/me)
+      const storedUser = await authApi.getCurrentUser();
+      if (storedUser?.id) {
         setUser(storedUser);
-        if (storedUser) {
-          setUserContext({ id: storedUser.id, email: storedUser.email, userType: 'CUSTOMER' });
-        }
+        setUserContext({ id: storedUser.id, email: storedUser.email, userType: 'CUSTOMER' });
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error('Auth check failed:', error);

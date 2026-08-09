@@ -162,6 +162,12 @@ const LoginScreen: React.FC = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.socialButton, { backgroundColor: theme.colors.surface2 }]}
+              onPress={() =>
+                Alert.alert(
+                  'Facebook sign-in',
+                  'Facebook login is not enabled yet. Use email or Google.'
+                )
+              }
             >
               <Ionicons name="logo-facebook" size={20} color="#1877F2" />
             </TouchableOpacity>

@@ -100,7 +100,7 @@ Before submitting an update or new release to Google Play Console:
 - [ ] **Gateway Config**: Verify `ENABLE_MOCK_FALLBACK=false` in release builds.
 - [ ] **Metro Port**: Metro configured on port 8888 (`npm run start --port 8888`).
 - [ ] **Device Testing**: Test release APK on physical Samsung Galaxy Z Flip 5 USB target.
-- [ ] **Privacy Policy URL**: `https://masova.com/privacy`
+- [ ] **Privacy Policy URL**: `https://masova.souravamseekar.com/privacy`
 - [ ] **Data Safety Notes (Play Console Declaration)**:
   - **Personal Data**: Name, Email address, Phone number, Delivery address (Collected for account authentication & order fulfillment). Encrypted in transit.
   - **Financial Info**: Payment metadata (Processed securely via Razorpay/Stripe SDKs; no raw credit card details stored).

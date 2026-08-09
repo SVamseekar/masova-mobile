@@ -24,7 +24,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Card } from '../../components/ui';
-import { RootStackParamList, GuestInfo } from '../../types';
+import { RootStackParamList, GuestInfo, DeliveryAddress } from '../../types';
+import { customerApi } from '../../services/api';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'GuestCheckout'>;
@@ -73,22 +74,29 @@ const GuestCheckoutScreen: React.FC = () => {
   }, [isAuthenticated, user]);
 
   const loadSavedAddresses = async () => {
+    if (!user?.id) {
+      setSavedAddresses([]);
+      return;
+    }
     try {
       setIsLoading(true);
-      // TODO: Implement API call to fetch saved addresses
-      // const addresses = await addressApi.getUserAddresses();
-      // setSavedAddresses(addresses);
-
-      // Empty for now - user needs to add addresses
-      setSavedAddresses([]);
-
-      // Select default address if available
-      const defaultAddress = savedAddresses.find(addr => addr.isDefault);
+      const customer = await customerApi.getByUserId(user.id);
+      const mapped: Address[] = (customer.addresses || []).map((a: DeliveryAddress) => ({
+        id: a.id,
+        street: a.addressLine1 || a.street || '',
+        city: a.city,
+        state: a.state || '',
+        pincode: a.postalCode || a.zipCode || '',
+        isDefault: a.isDefault,
+      }));
+      setSavedAddresses(mapped);
+      const defaultAddress = mapped.find((addr) => addr.isDefault) || mapped[0];
       if (defaultAddress) {
         setSelectedAddressId(defaultAddress.id);
       }
     } catch (error) {
       console.error('Failed to load addresses:', error);
+      setSavedAddresses([]);
     } finally {
       setIsLoading(false);
     }

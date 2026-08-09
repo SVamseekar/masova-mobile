@@ -7,3 +7,4 @@ export { default as paymentApi } from './paymentApi';
 export { default as deliveryApi } from './deliveryApi';
 export { default as notificationApi } from './notificationApi';
 export { default as reviewApi } from './reviewApi';
+export { default as campaignApi } from './campaignApi';

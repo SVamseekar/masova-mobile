@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +19,11 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../hooks/useTheme';
+import { useCart } from '../../contexts/CartContext';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Badge, Button } from '../../components/ui';
-import { orderApi } from '../../services/api';
+import { orderApi, menuApi } from '../../services/api';
 import { Order, RootStackParamList } from '../../types';
 
 type RouteProps = RouteProp<RootStackParamList, 'OrderDetail'>;
@@ -37,10 +40,12 @@ const OrderDetailScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { orderId } = route.params;
+  const { addItem } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
 
   useEffect(() => {
     fetchOrder();
@@ -60,11 +65,12 @@ const OrderDetailScreen: React.FC = () => {
     }
   };
 
-  const formatPrice = (price: number) => `₹${Math.round(price)}`;
+  const { formatMoney, locale } = useStoreCurrency();
+  const formatPrice = formatMoney;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
+    return date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -253,8 +259,54 @@ const OrderDetailScreen: React.FC = () => {
               fullWidth
             />
           )}
-          <Button title="Reorder" onPress={() => {}} variant={isActiveOrder(order.status) ? 'secondary' : 'primary'} fullWidth />
-          <Button title="Need Help?" variant="secondary" onPress={() => {}} fullWidth />
+          <Button
+            title={reordering ? 'Adding…' : 'Reorder'}
+            loading={reordering}
+            disabled={reordering}
+            onPress={async () => {
+              if (!order?.items?.length) {
+                Alert.alert('Reorder', 'No items found on this order.');
+                return;
+              }
+              setReordering(true);
+              try {
+                let added = 0;
+                for (const line of order.items) {
+                  try {
+                    const menuItem = await menuApi.getMenuItem(line.menuItemId);
+                    addItem(menuItem, line.quantity || 1);
+                    added += 1;
+                  } catch {
+                    // Item may be unavailable — skip
+                  }
+                }
+                if (added === 0) {
+                  Alert.alert(
+                    'Reorder unavailable',
+                    'Those menu items could not be loaded for the current store. Select the right branch and try again.'
+                  );
+                  return;
+                }
+                Alert.alert('Added to cart', `${added} item(s) added. Review your cart to checkout.`, [
+                  { text: 'Stay', style: 'cancel' },
+                  {
+                    text: 'Go to cart',
+                    onPress: () => navigation.navigate('Main', { screen: 'Home' }),
+                  },
+                ]);
+              } finally {
+                setReordering(false);
+              }
+            }}
+            variant={isActiveOrder(order.status) ? 'secondary' : 'primary'}
+            fullWidth
+          />
+          <Button
+            title="Need Help?"
+            variant="secondary"
+            onPress={() => navigation.navigate('Chat')}
+            fullWidth
+          />
         </View>
 
         <View style={{ height: spacing[10] }} />

@@ -30,7 +30,14 @@ describe('customerApi Service', () => {
       const result = await customerApi.getByUserId('user_456');
 
       expect(httpClient.get).toHaveBeenCalledWith('/customers?userId=user_456');
-      expect(result).toEqual(mockCustomer);
+      expect(result).toMatchObject({
+        id: 'cust_123',
+        userId: 'user_456',
+        name: 'John',
+        loyaltyInfo: expect.objectContaining({ totalPoints: 0, tier: 'BRONZE' }),
+        orderStats: expect.objectContaining({ totalOrders: 0 }),
+        isActive: true,
+      });
     });
 
     it('throws error when no profile is returned', async () => {
@@ -50,19 +57,20 @@ describe('customerApi Service', () => {
       const result = await customerApi.getById('cust_123');
 
       expect(httpClient.get).toHaveBeenCalledWith('/customers/cust_123');
-      expect(result).toEqual(mockCustomer);
+      expect(result).toMatchObject({ id: 'cust_123', name: 'John' });
+      expect(result.loyaltyInfo).toBeDefined();
     });
   });
 
   describe('getOrCreate', () => {
     it('delegates to getByUserId', async () => {
-      const mockCustomer = { id: 'cust_123', userId: 'user_456' };
+      const mockCustomer = { id: 'cust_123', userId: 'user_456', name: 'John' };
       (httpClient.get as jest.Mock).mockResolvedValue({ data: [mockCustomer] });
 
       const result = await customerApi.getOrCreate({ userId: 'user_456', name: 'John', email: 'j@ex.com' });
 
       expect(httpClient.get).toHaveBeenCalledWith('/customers?userId=user_456');
-      expect(result).toEqual(mockCustomer);
+      expect(result).toMatchObject({ id: 'cust_123', userId: 'user_456' });
     });
   });
 

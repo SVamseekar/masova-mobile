@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { Store } from '../types';
+import { storeApi } from '../services/api';
 
 import { setClientSelectedStoreContext } from '../services/http/client';
 
@@ -37,7 +38,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     setClientSelectedStoreContext(storeIdOrCode);
   }, [selectedStore]);
 
-  // Load selected store from storage on mount
+  // Load selected store from storage; if none, auto-pick first active store from API
   useEffect(() => {
     loadSelectedStore();
   }, []);
@@ -46,9 +47,27 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     try {
       const storedData = await AsyncStorage.getItem(SELECTED_STORE_KEY);
       if (storedData) {
-        const store = JSON.parse(storedData);
+        const store = JSON.parse(storedData) as Store;
         setSelectedStoreState(store);
         setClientSelectedStoreContext(store.storeCode || store.id || null);
+        return;
+      }
+
+      // First launch: bootstrap from backend store list (no hardcode)
+      try {
+        const stores = await storeApi.getAll();
+        const list = Array.isArray(stores) ? stores : [];
+        const first =
+          list.find((s) => (s.storeCode || s.id) && (s.status === 'ACTIVE' || !s.status)) ||
+          list[0];
+        if (first) {
+          await AsyncStorage.setItem(SELECTED_STORE_KEY, JSON.stringify(first));
+          setSelectedStoreState(first);
+          setClientSelectedStoreContext(first.storeCode || first.id || null);
+          queryClient.invalidateQueries({ queryKey: ['menu'] });
+        }
+      } catch (apiErr) {
+        console.warn('Could not auto-select store from API:', apiErr);
       }
     } catch (err) {
       console.error('Failed to load selected store:', err);

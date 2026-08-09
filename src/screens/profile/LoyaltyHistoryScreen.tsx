@@ -20,51 +20,25 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Card, Badge } from '../../components/ui';
 import { RootStackParamList, Customer, PointTransaction } from '../../types';
 import { customerApi } from '../../services/api';
 import GuestPromptView from '../../components/GuestPromptView';
+import {
+  computeLoyaltyProgress,
+  getTierColor,
+} from '../../utils/loyaltyProgram';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const getTierColor = (tier?: string): string => {
-  switch (tier) {
-    case 'PLATINUM':
-      return '#8E24AA';
-    case 'GOLD':
-      return '#F59E0B';
-    case 'SILVER':
-      return '#9E9E9E';
-    case 'BRONZE':
-    default:
-      return '#D97706';
-  }
-};
-
-const getNextTierProgress = (tier?: string, points: number = 0) => {
-  let target = 1000;
-  let nextTier = 'Silver';
-  if (tier === 'SILVER') {
-    target = 5000;
-    nextTier = 'Gold';
-  } else if (tier === 'GOLD') {
-    target = 10000;
-    nextTier = 'Platinum';
-  } else if (tier === 'PLATINUM') {
-    return { percent: 1, text: 'Maximum tier achieved!' };
-  }
-
-  const remaining = Math.max(0, target - points);
-  const percent = Math.min(1, points / target);
-  return { percent, text: `${remaining.toLocaleString('en-IN')} points to ${nextTier}` };
-};
 
 const LoyaltyHistoryScreen: React.FC = () => {
   const { theme } = useTheme();
   const { isAuthenticated, user } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { locale } = useStoreCurrency();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +47,7 @@ const LoyaltyHistoryScreen: React.FC = () => {
   const fetchLoyaltyData = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const data = await customerApi.getByUserId(user.id);
+      const data = await customerApi.getByUserId(user.id, user.email);
       setCustomer(data);
     } catch (err) {
       console.error('Failed to fetch loyalty history:', err);
@@ -106,8 +80,12 @@ const LoyaltyHistoryScreen: React.FC = () => {
 
   const loyalty = customer?.loyaltyInfo;
   const history: PointTransaction[] = loyalty?.pointHistory || [];
-  const tierColor = getTierColor(loyalty?.tier);
-  const tierProgress = getNextTierProgress(loyalty?.tier, loyalty?.totalPoints || 0);
+  const progress = computeLoyaltyProgress(loyalty, locale);
+  const tierColor = progress.tierColor;
+  const tierProgress = {
+    percent: progress.progressPercent,
+    text: progress.progressLabel,
+  };
 
   const renderTransaction = ({ item }: { item: PointTransaction }) => {
     const isEarned = item.type === 'EARNED' || item.type === 'BONUS';
@@ -132,7 +110,7 @@ const LoyaltyHistoryScreen: React.FC = () => {
               {item.description || (isEarned ? 'Points Earned' : 'Points Redeemed')}
             </Text>
             <Text style={[styles.transactionDate, { color: theme.colors.text2 }]}>
-              {new Date(item.timestamp).toLocaleDateString('en-IN', {
+              {new Date(item.timestamp).toLocaleDateString('de-DE', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
@@ -197,13 +175,14 @@ const LoyaltyHistoryScreen: React.FC = () => {
                   <View style={[styles.tierBadge, { backgroundColor: `${tierColor}30`, borderColor: tierColor }]}>
                     <Ionicons name="ribbon" size={14} color={tierColor} />
                     <Text style={[styles.tierBadgeText, { color: tierColor }]}>
-                      {loyalty?.tier || 'BRONZE'} TIER
+                      {progress.tier} · {progress.multiplier}×
                     </Text>
                   </View>
                 </View>
 
                 <Text style={styles.balanceAmount}>
-                  {(loyalty?.totalPoints || 0).toLocaleString('en-IN')} <Text style={styles.ptsUnit}>pts</Text>
+                  {progress.points.toLocaleString(locale)}{' '}
+                  <Text style={styles.ptsUnit}>pts</Text>
                 </Text>
 
                 {/* Next Tier Progress Bar */}
@@ -223,12 +202,16 @@ const LoyaltyHistoryScreen: React.FC = () => {
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}>
                     <Text style={styles.statLabel}>Total Earned</Text>
-                    <Text style={styles.statValue}>+{(loyalty?.pointsEarned || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={styles.statValue}>
+                      +{(loyalty?.pointsEarned || 0).toLocaleString(locale)}
+                    </Text>
                   </View>
                   <View style={styles.statDivider} />
                   <View style={styles.statItem}>
                     <Text style={styles.statLabel}>Total Redeemed</Text>
-                    <Text style={styles.statValue}>-{(loyalty?.pointsRedeemed || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={styles.statValue}>
+                      -{(loyalty?.pointsRedeemed || 0).toLocaleString(locale)}
+                    </Text>
                   </View>
                 </View>
               </Card>

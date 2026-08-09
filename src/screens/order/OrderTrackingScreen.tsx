@@ -22,6 +22,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../hooks/useTheme';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Card, Badge, FloatingChatBubble } from '../../components/ui';
@@ -142,10 +143,8 @@ const OrderTrackingScreen: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Helper to format currency
-  const formatCurrency = (amount: number) => {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  };
+  const { formatMoney } = useStoreCurrency();
+  const formatCurrency = (amount: number) => formatMoney(amount);
 
   // Helper to call driver
   const handleCallDriver = () => {

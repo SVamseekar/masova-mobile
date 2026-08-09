@@ -3,65 +3,46 @@
  * User profile and settings
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Linking,
+  Alert,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Badge } from '../../components/ui';
 import { RootStackParamList, Customer } from '../../types';
-import { customerApi } from '../../services/api';
+import { customerApi, orderApi } from '../../services/api';
 import { AllergenType, ALLERGEN_LABELS } from '../../constants/allergens';
+import {
+  APP_LINKS,
+  SUPPORTED_LANGUAGES,
+  AppLanguageCode,
+} from '../../constants/appLinks';
+import {
+  computeLoyaltyProgress,
+  LOYALTY_TIERS,
+} from '../../utils/loyaltyProgram';
+
+const LANGUAGE_KEY = 'masova_app_language';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-// Helper function to get tier badge color
-const getTierColor = (tier?: string): string => {
-  switch (tier) {
-    case 'PLATINUM':
-      return '#1a1a2e';
-    case 'GOLD':
-      return '#FFD700';
-    case 'SILVER':
-      return '#C0C0C0';
-    case 'BRONZE':
-    default:
-      return '#CD7F32';
-  }
-};
-
-// Helper function to get next tier info text
-const getNextTierInfo = (tier?: string, points: number = 0): string => {
-  switch (tier) {
-    case 'PLATINUM':
-      return 'You have reached the highest tier!';
-    case 'GOLD':
-      return `${formatNumber(10000 - points)} points to Platinum`;
-    case 'SILVER':
-      return `${formatNumber(5000 - points)} points to Gold`;
-    case 'BRONZE':
-    default:
-      return `${formatNumber(1000 - points)} points to Silver`;
-  }
-};
-
-// Helper function to format numbers with commas (Indian numbering system)
-const formatNumber = (num: number): string => {
-  const rounded = Math.round(num);
-  return rounded.toLocaleString('en-IN');
-};
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -108,24 +89,111 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onPress, badge, danger
   </TouchableOpacity>
 );
 
+const openExternalUrl = async (url: string, fallbackUrl?: string) => {
+  try {
+    const can = await Linking.canOpenURL(url);
+    if (can) {
+      await Linking.openURL(url);
+      return;
+    }
+    if (fallbackUrl) {
+      await Linking.openURL(fallbackUrl);
+      return;
+    }
+    Alert.alert('Unable to open link', 'Please try again later.');
+  } catch {
+    if (fallbackUrl) {
+      try {
+        await Linking.openURL(fallbackUrl);
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    Alert.alert('Unable to open link', 'Please try again later.');
+  }
+};
+
 const ProfileScreen: React.FC = () => {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme, themePreference } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { formatMoney, locale } = useStoreCurrency();
 
   const [customerData, setCustomerData] = useState<Customer | null>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [loyaltyError, setLoyaltyError] = useState<string | null>(null);
+  const [language, setLanguage] = useState<AppLanguageCode>('en');
+
+  useEffect(() => {
+    AsyncStorage.getItem(LANGUAGE_KEY).then((raw) => {
+      if (raw === 'en' || raw === 'de') setLanguage(raw);
+    });
+  }, []);
 
   const fetchCustomerData = useCallback(async () => {
     if (!user?.id) return;
 
+    setLoyaltyLoading(true);
+    setLoyaltyError(null);
     try {
-      const customer = await customerApi.getByUserId(user.id);
-      setCustomerData(customer);
+      const customer = await customerApi.getByUserId(user.id, user.email);
+
+      // If platform orderStats are empty, derive from live orders for this user
+      let merged = customer;
+      const stats = customer.orderStats;
+      const needsStats =
+        !stats ||
+        ((stats.totalOrders ?? 0) === 0 &&
+          (stats.totalSpent ?? 0) === 0);
+
+      if (needsStats) {
+        try {
+          const ordersRes = await orderApi.getCustomerOrders(user.id);
+          const orders = Array.isArray(ordersRes)
+            ? ordersRes
+            : (ordersRes as any)?.content || [];
+          if (orders.length > 0) {
+            const completed = orders.filter((o: any) =>
+              ['DELIVERED', 'COMPLETED', 'SERVED'].includes(o.status)
+            );
+            const pool = completed.length > 0 ? completed : orders;
+            const totalSpent = pool.reduce(
+              (s: number, o: any) => s + (Number(o.total) || 0),
+              0
+            );
+            merged = {
+              ...customer,
+              orderStats: {
+                totalOrders: orders.length,
+                completedOrders: completed.length,
+                cancelledOrders: orders.filter((o: any) => o.status === 'CANCELLED')
+                  .length,
+                totalSpent,
+                averageOrderValue: pool.length ? totalSpent / pool.length : 0,
+                favoriteOrderType: customer.orderStats?.favoriteOrderType,
+              },
+            };
+          }
+        } catch {
+          // keep customer as-is
+        }
+      }
+
+      setCustomerData(merged);
     } catch (err: any) {
       console.error('Failed to fetch customer data:', err);
+      setLoyaltyError(err?.message || 'Could not load loyalty data');
+    } finally {
+      setLoyaltyLoading(false);
     }
   }, [user?.id]);
+
+  const loyaltyProgress = useMemo(
+    () => computeLoyaltyProgress(customerData?.loyaltyInfo, locale),
+    [customerData?.loyaltyInfo, locale]
+  );
 
   // Fetch customer data on mount, when screen gains focus, and when user logs in
   useFocusEffect(
@@ -165,7 +233,7 @@ const ProfileScreen: React.FC = () => {
           style={[styles.signInButton, { backgroundColor: '#FFD000', marginTop: spacing[6] }]}
           onPress={() => navigation.navigate('Auth')}
         >
-          <Text style={[styles.signInButtonText, { color: '#FFFFFF' }]}>Sign In</Text>
+          <Text style={[styles.signInButtonText, { color: '#0F0F0F' }]}>Sign In</Text>
         </TouchableOpacity>
       </View>
     );
@@ -192,82 +260,127 @@ const ProfileScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             style={[styles.editButton, { backgroundColor: theme.colors.surface2 }]}
+            onPress={() => {
+              if (isFeatureEnabled('ENABLE_PREFERENCES_EDIT')) {
+                navigation.navigate('Preferences');
+              } else {
+                navigation.navigate('NotificationSettings');
+              }
+            }}
+            accessibilityLabel="Edit preferences"
           >
             <Ionicons name="pencil" size={18} color={theme.colors.text2} />
           </TouchableOpacity>
         </View>
 
 
-        {/* Loyalty Card */}
+        {/* Loyalty Card — live customer.loyaltyInfo + orderStats from platform */}
         {isFeatureEnabled('ENABLE_LOYALTY') && (
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => navigation.navigate('LoyaltyHistory')}
+          disabled={loyaltyLoading && !customerData}
         >
           <View style={[styles.loyaltyCard, { backgroundColor: '#FFD000' }]}>
-            {/* Header */}
-            <View style={styles.loyaltyHeader}>
-              <View>
-                <Text style={styles.loyaltyLabel}>Loyalty Points</Text>
-                <Text style={styles.loyaltyPoints}>
-                  {formatNumber(customerData?.loyaltyInfo?.totalPoints ?? 0)}
+            {loyaltyLoading && !customerData ? (
+              <View style={styles.loyaltyLoading}>
+                <ActivityIndicator color="#0F0F0F" />
+                <Text style={styles.progressLabel}>Loading loyalty…</Text>
+              </View>
+            ) : loyaltyError && !customerData ? (
+              <View style={styles.loyaltyLoading}>
+                <Text style={styles.progressLabel}>{loyaltyError}</Text>
+                <Text style={[styles.progressLabel, { textDecorationLine: 'underline' }]}>
+                  Tap to open history · pull Account again to retry
                 </Text>
               </View>
-              <View style={styles.loyaltyTierContainer}>
-                <View style={[styles.tierBadge, { backgroundColor: getTierColor(customerData?.loyaltyInfo?.tier) }]}>
-                  <Text style={styles.tierBadgeText}>
-                    {customerData?.loyaltyInfo?.tier || 'BRONZE'}
-                  </Text>
+            ) : (
+              <>
+                <View style={styles.loyaltyHeader}>
+                  <View>
+                    <Text style={styles.loyaltyLabel}>Loyalty Points</Text>
+                    <Text style={styles.loyaltyPoints}>
+                      {loyaltyProgress.points.toLocaleString(locale)}
+                    </Text>
+                    <Text style={styles.loyaltyMultiplier}>
+                      {loyaltyProgress.multiplier}× earn rate · {loyaltyProgress.tierLabel}
+                    </Text>
+                  </View>
+                  <View style={styles.loyaltyTierContainer}>
+                    <View
+                      style={[
+                        styles.tierBadge,
+                        { backgroundColor: loyaltyProgress.tierColor },
+                      ]}
+                    >
+                      <Text style={styles.tierBadgeText}>{loyaltyProgress.tier}</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
 
-            {/* Progress Bar */}
-            <View style={styles.progressContainer}>
-              <Text style={styles.progressLabel}>
-                {getNextTierInfo(customerData?.loyaltyInfo?.tier, customerData?.loyaltyInfo?.totalPoints ?? 0)}
-              </Text>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${Math.min(((customerData?.loyaltyInfo?.totalPoints ?? 0) / 10000) * 100, 100)}%` }
-                  ]}
-                />
-              </View>
-              <View style={styles.milestones}>
-                <Text style={styles.milestoneText}>Bronze{'\n'}0</Text>
-                <Text style={[styles.milestoneText, { textAlign: 'center' }]}>Silver{'\n'}1,000</Text>
-                <Text style={[styles.milestoneText, { textAlign: 'center' }]}>Gold{'\n'}5,000</Text>
-                <Text style={[styles.milestoneText, { textAlign: 'right' }]}>Platinum{'\n'}10,000</Text>
-              </View>
-            </View>
+                <View style={styles.progressContainer}>
+                  <Text style={styles.progressLabel}>{loyaltyProgress.progressLabel}</Text>
+                  {/* Overall ladder progress (Bronze → Platinum) so the bar always moves with points */}
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.max(
+                            loyaltyProgress.points > 0 ? 4 : 0,
+                            Math.round(loyaltyProgress.overallPercent * 100)
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.milestones}>
+                    {LOYALTY_TIERS.map((m, i) => {
+                      const reached = loyaltyProgress.points >= m.minPoints;
+                      return (
+                        <Text
+                          key={m.tier}
+                          style={[
+                            styles.milestoneText,
+                            i === 0
+                              ? null
+                              : i === LOYALTY_TIERS.length - 1
+                                ? { textAlign: 'right' }
+                                : { textAlign: 'center' },
+                            reached ? { color: '#0F0F0F', fontFamily: 'PlusJakartaSans-Bold' } : null,
+                          ]}
+                        >
+                          {m.label}
+                          {'\n'}
+                          {m.minPoints.toLocaleString(locale)}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                </View>
 
-            {/* Stats */}
-            <View style={styles.loyaltyStats}>
-              <View style={styles.loyaltyStat}>
-                <Text style={styles.loyaltyStatValue}>
-                  {customerData?.orderStats?.totalOrders ?? 0}
-                </Text>
-                <Text style={styles.loyaltyStatLabel}>Orders</Text>
-              </View>
-              <View style={styles.loyaltyStat}>
-                <Text style={styles.loyaltyStatValue}>
-                  {customerData?.orderStats?.totalSpent
-                    ? `₹${formatNumber(customerData.orderStats.totalSpent)}`
-                    : '₹0'}
-                </Text>
-                <Text style={styles.loyaltyStatLabel}>Spent</Text>
-              </View>
-              <View style={styles.loyaltyStat}>
-                <Text style={styles.loyaltyStatValue}>
-                  {customerData?.orderStats?.averageOrderValue
-                    ? `₹${formatNumber(customerData.orderStats.averageOrderValue)}`
-                    : '₹0'}
-                </Text>
-                <Text style={styles.loyaltyStatLabel}>Avg Order</Text>
-              </View>
-            </View>
+                <View style={styles.loyaltyStats}>
+                  <View style={styles.loyaltyStat}>
+                    <Text style={styles.loyaltyStatValue}>
+                      {customerData?.orderStats?.totalOrders ?? 0}
+                    </Text>
+                    <Text style={styles.loyaltyStatLabel}>Orders</Text>
+                  </View>
+                  <View style={styles.loyaltyStat}>
+                    <Text style={styles.loyaltyStatValue}>
+                      {formatMoney(customerData?.orderStats?.totalSpent ?? 0)}
+                    </Text>
+                    <Text style={styles.loyaltyStatLabel}>Spent</Text>
+                  </View>
+                  <View style={styles.loyaltyStat}>
+                    <Text style={styles.loyaltyStatValue}>
+                      {formatMoney(customerData?.orderStats?.averageOrderValue ?? 0)}
+                    </Text>
+                    <Text style={styles.loyaltyStatLabel}>Avg Order</Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
         </TouchableOpacity>
         )}
@@ -297,7 +410,14 @@ const ProfileScreen: React.FC = () => {
           {isFeatureEnabled('ENABLE_LOYALTY') && (
             <MenuItem
               icon="gift-outline"
-              label="Loyalty & Points History"
+              label="Loyalty & Rewards"
+              badge={
+                customerData
+                  ? `${loyaltyProgress.points.toLocaleString(locale)} pts`
+                  : loyaltyLoading
+                    ? '…'
+                    : undefined
+              }
               onPress={() => navigation.navigate('LoyaltyHistory')}
               theme={theme}
             />
@@ -329,7 +449,13 @@ const ProfileScreen: React.FC = () => {
             onPress={() => navigation.navigate('Chat')}
             theme={theme}
           />
-          <TouchableOpacity style={styles.menuItem} onPress={toggleTheme}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={toggleTheme}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: !isDark }}
+            accessibilityLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
             <View
               style={[styles.menuIcon, { backgroundColor: theme.colors.surface2 }]}
             >
@@ -339,9 +465,16 @@ const ProfileScreen: React.FC = () => {
                 color={theme.colors.text2}
               />
             </View>
-            <Text style={[styles.menuLabel, { color: theme.colors.text1 }]}>
-              {isDark ? 'Light Mode' : 'Dark Mode'}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuLabel, { color: theme.colors.text1, flex: 0 }]}>
+                {isDark ? 'Light Mode' : 'Dark Mode'}
+              </Text>
+              {themePreference === 'auto' ? (
+                <Text style={{ color: theme.colors.text3, fontSize: 11, marginTop: 2 }}>
+                  Auto (sunrise) — tap to override
+                </Text>
+              ) : null}
+            </View>
             <View
               style={[
                 styles.toggle,
@@ -365,8 +498,29 @@ const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
           <MenuItem
             icon="language-outline"
-            label="Language"
-            onPress={() => {}}
+            label={`Language · ${SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label || 'English'}`}
+            onPress={() => {
+              Alert.alert(
+                'Language',
+                'Choose app language. Full translations roll out per release; preference is saved on this device.',
+                [
+                  ...SUPPORTED_LANGUAGES.map((lang) => ({
+                    text: lang.label + (lang.code === language ? ' ✓' : ''),
+                    onPress: async () => {
+                      setLanguage(lang.code);
+                      await AsyncStorage.setItem(LANGUAGE_KEY, lang.code);
+                      Alert.alert(
+                        'Language saved',
+                        lang.code === 'en'
+                          ? 'English is active.'
+                          : 'Deutsch selected. UI strings will expand in a future update; preference is stored.'
+                      );
+                    },
+                  })),
+                  { text: 'Cancel', style: 'cancel' },
+                ]
+              );
+            }}
             theme={theme}
           />
         </Card>
@@ -375,25 +529,31 @@ const ProfileScreen: React.FC = () => {
           <MenuItem
             icon="help-circle-outline"
             label="Help & Support"
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Chat')}
             theme={theme}
           />
           <MenuItem
             icon="document-text-outline"
             label="Terms & Conditions"
-            onPress={() => {}}
+            onPress={() => openExternalUrl(APP_LINKS.termsOfService, APP_LINKS.website)}
             theme={theme}
           />
           <MenuItem
             icon="shield-outline"
             label="Privacy Policy"
-            onPress={() => {}}
+            onPress={() => openExternalUrl(APP_LINKS.privacyPolicy, APP_LINKS.website)}
             theme={theme}
           />
           <MenuItem
             icon="star-outline"
             label="Rate the App"
-            onPress={() => {}}
+            onPress={() => {
+              if (Platform.OS === 'android') {
+                openExternalUrl(APP_LINKS.playStoreMarket, APP_LINKS.playStore);
+              } else {
+                openExternalUrl(APP_LINKS.playStore);
+              }
+            }}
             theme={theme}
           />
         </Card>
@@ -441,7 +601,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.bold,
-    color: '#FFF',
+    color: '#0F0F0F',
   },
   profileInfo: {
     flex: 1,
@@ -535,7 +695,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
   },
-  // Loyalty Card Styles
+  // Loyalty card sits on brand gold — all ink must be dark (onAccent)
   loyaltyCard: {
     borderRadius: borderRadius.xl,
     padding: spacing[5],
@@ -549,13 +709,27 @@ const styles = StyleSheet.create({
   },
   loyaltyLabel: {
     fontSize: typography.fontSize.caption,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(15, 15, 15, 0.7)',
     marginBottom: spacing[1],
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   loyaltyPoints: {
     fontSize: typography.fontSize.headline,
     fontWeight: typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: '#0F0F0F',
+    fontFamily: 'PlusJakartaSans-ExtraBold',
+  },
+  loyaltyMultiplier: {
+    fontSize: 11,
+    color: 'rgba(15, 15, 15, 0.65)',
+    marginTop: 4,
+    fontFamily: 'PlusJakartaSans-Medium',
+  },
+  loyaltyLoading: {
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
   },
   loyaltyTierContainer: {
     alignItems: 'flex-end',
@@ -575,19 +749,20 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: typography.fontSize.caption,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(15, 15, 15, 0.75)',
     marginBottom: spacing[2],
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   progressBar: {
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    height: 10,
+    backgroundColor: 'rgba(15, 15, 15, 0.15)',
+    borderRadius: 5,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 4,
+    backgroundColor: '#0F0F0F',
+    borderRadius: 5,
   },
   milestones: {
     flexDirection: 'row',
@@ -596,15 +771,16 @@ const styles = StyleSheet.create({
   },
   milestoneText: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(15, 15, 15, 0.65)',
     lineHeight: 14,
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   loyaltyStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingTop: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    borderTopColor: 'rgba(15, 15, 15, 0.12)',
   },
   loyaltyStat: {
     alignItems: 'center',
@@ -612,12 +788,14 @@ const styles = StyleSheet.create({
   loyaltyStatValue: {
     fontSize: typography.fontSize.titleSm,
     fontWeight: typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: '#0F0F0F',
+    fontFamily: 'PlusJakartaSans-Bold',
   },
   loyaltyStatLabel: {
     fontSize: typography.fontSize.caption,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(15, 15, 15, 0.7)',
     marginTop: spacing[1],
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   sectionTitle: {
     fontSize: typography.fontSize.body,

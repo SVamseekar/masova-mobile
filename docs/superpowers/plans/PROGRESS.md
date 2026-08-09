@@ -1,8 +1,11 @@
 # MaSoVa Mobile — Production Upgrade Progress & Verification Report
 
-**Date:** 2026-08-10  
+**Date:** 2026-08-10 (post-merge closeout)  
 **Repository:** `masova-mobile`  
-**Current Branch:** `security-remediation-plan-b`
+**Base:** `main`  
+**Program squash:** `5efe8b4` — `feat(mobile): production program Phases 0–F…`  
+**HEAD at closeout baseline:** `5c1f998` (may move; program land is `5efe8b4`)  
+**PR:** [#1 MERGED](https://github.com/SVamseekar/masova-mobile/pull/1)
 
 ---
 
@@ -11,12 +14,28 @@
 | Phase | Description | Status | Verification |
 |-------|-------------|--------|--------------|
 | **Phase 0** | Tooling, strict CI, scripts, docs skeleton, README rewrite | **COMPLETED** | `npm run typecheck && npm run lint && npm test` GREEN |
-| **Phase A** | API Contract Re-sync (P0) | **COMPLETED** | 0 legacy paths in `src/`, 14 contract tests GREEN, `docs/API_CONTRACT.md` verified |
-| **Phase B** | Product Parity | **COMPLETED** | Preferences, Notification Settings, Loyalty History, Change Password, and Delivery Radius Check screens & unit tests GREEN (16 tests pass) |
-| **Phase C** | Realtime & Resilience | **COMPLETED** | WS exponential backoff & token refresh, order + delivery WS topics with REST fallback, store-switch cart guard, global offline banner, checkout double-submit lock, a11y labels. 23 unit tests GREEN. |
-| **Phase D** | Testing Hardening | **COMPLETED** | Unit/Service coverage >70% (100% on `src/services/api` & `src/utils`), 4 component tests, Maestro Android smoke path, live Dell gateway smoke script passing, CI quality gates active |
-| **Phase E** | Observability & Release | **COMPLETED** | Sentry React Native error reporting service, core analytics events (`auth.login`, `order.create`, `payment`, `menu.load.fail`), local feature flags module, complete `docs/RELEASE.md` (versioning, signed release pipeline, Play Store checklist), Dell smoke script auth reachability tightened. 22 unit test suites (128 tests) passing GREEN. |
-| **Phase F** | Production Hardening | **COMPLETED** | Certificate pinning plan (enforce deferred), payment screenshot security hook, FlatList virtualization + `expo-image` cache, security checklist, runbook drills A–C, feature flags wired to UI/flows. Quality gates GREEN. |
+| **Phase A** | API Contract Re-sync (P0) | **COMPLETED** | 0 legacy paths in `src/`, contract tests GREEN, `docs/API_CONTRACT.md` verified |
+| **Phase B** | Product Parity | **COMPLETED** | Preferences, Notification Settings, Loyalty History, Change Password, Delivery Radius Check |
+| **Phase C** | Realtime & Resilience | **COMPLETED** | WS backoff & token refresh, order + delivery topics + REST fallback, store-switch guard, offline banner, checkout double-submit lock, a11y |
+| **Phase D** | Testing Hardening | **COMPLETED** | Unit/service coverage, component tests, Maestro smoke path, Dell smoke script, CI quality gates |
+| **Phase E** | Observability & Release | **COMPLETED** | Sentry service, analytics events, feature flags, `docs/RELEASE.md` |
+| **Phase F** | Production Hardening | **COMPLETED** | Pinning plan (enforce deferred), payment capture hook, list/image perf, security checklist, runbook drills A–C, flag wiring |
+
+**Program code:** Phases 0–F landed on `main` via squash `5efe8b4` (PR #1). Do **not** re-implement.
+
+---
+
+## Post-merge residuals (ops / env only)
+
+No open feature work from Phases 0–F. Remaining items need secrets, platform certs, or device sign-off:
+
+| Residual | Blocker | Owner action |
+|----------|---------|--------------|
+| **Sentry test event from a release build** (DoD §9 item 5) | Needs real `SENTRY_DSN` in env / build secrets — **do not invent or commit DSN** | Set DSN → release APK → `sendTestErrorEvent()` → confirm in Sentry UI |
+| **Certificate pin enforce** | Needs prod HTTPS host + ops-published SPKI pins (≥2) + report-only soak | Platform ops publish pins; then `certificatePinning.ts` mode flip per `docs/SECURITY.md` |
+| **Optional `expo-screen-capture`** | Native module not required for tests; no-ops until installed | `npx expo install expo-screen-capture` + native rebuild for payment FLAG_SECURE |
+| **ESLint warning debt** | Lint exits 0; warnings (`no-explicit-any`, unused vars) remain | Track as cleanup; not a merge blocker |
+| **Optional device E2E sign-off** | Maestro yaml + docs exist; formal Z Flip 5 run optional | Metro `:8888`, `adb reverse`, physical Samsung Galaxy Z Flip 5 |
 
 ---
 
@@ -30,11 +49,11 @@ $ npm run typecheck
 
 $ npm run lint
 > eslint src/
-# Output: Exit code 0, 0 errors, 106 warnings
+# Output: Exit code 0, 0 errors (warnings only)
 
 $ npm test
 > jest
-# Output: Exit code 0 (22 test suites passed, 128 tests passed)
+# Output: Exit code 0 (historically 22 suites / 128 tests; post-F baseline 25 suites / 138 tests)
 ```
 
 ### 2. Legacy Path Audit (Ripgrep)
@@ -64,9 +83,8 @@ $ npm test
 
 ---
 
-## Known Residuals & Phase B Deliverables Summary
+## Phase B Deliverables Summary
 
-### Phase B Deliverables Completed (Commit `ada68b3`)
 1. **Preferences Editor (`PreferencesScreen.tsx`):** Manage dietary restrictions, allergen alerts, spice level selection (`PATCH /api/customers/{id}`).
 2. **Notification Settings (`NotificationSettingsScreen.tsx`):** Toggle order status and promo offer push notifications.
 3. **Loyalty History (`LoyaltyHistoryScreen.tsx`):** Tier badge display, points progress, and transaction history list.
@@ -93,7 +111,6 @@ $ npm test
    - **`src/services/api/`**: 100% line coverage (`authApi`, `customerApi`, `orderApi`, `paymentApi`, `storeApi`, `menuApi`, `notificationApi`, `reviewApi`, `deliveryApi`).
    - **`src/utils/`**: 100% line coverage (`money.ts`).
    - **`src/services/secureTokenStorage.ts`**: 100% line coverage.
-   - **Total Suites & Tests**: 19 test suites, 120 passing tests.
 
 2. **Component Tests (D2):**
    - `LoginScreen.test.tsx`: Validates login form inputs and error banner display on authentication failure.
@@ -139,21 +156,11 @@ $ npm test
    - Exported through `src/config/index.ts` and fully covered with unit tests.
 
 4. **Release Documentation & Signed Release Pipeline (E4):**
-   - Rewrote `docs/RELEASE.md` covering:
-     - Version bump procedure (`package.json` + `android/app/build.gradle` `versionCode` & `versionName`)
-     - Changelog & git tagging conventions (`vX.Y.Z`)
-     - Keystore generation & Gradle signed release build pipeline (`./gradlew assembleRelease` / `./gradlew bundleRelease`)
-     - Metro port 8888 release packaging rules for bare React Native
-     - Sentry DSN configuration and test event execution
-     - Play Store checklist including Privacy Policy URL (`https://masova.com/privacy`), Data Safety declarations, and required store graphics.
+   - Rewrote `docs/RELEASE.md` covering version bump, changelog/tagging, keystore & Gradle signed release, Metro port 8888, Sentry DSN configuration, Play Store checklist.
 
 5. **Smoke Test & CI Residual Polish (E5):**
    - Updated `scripts/dell-smoke-test.js` to accept HTTP 200, 400, 401, 403, or 500 for auth gateway reachability, and added pre-flight check with `ALLOW_SKIP_IF_UNREACHABLE=true` for CI environments without LAN access.
    - Updated `.github/workflows/ci.yml` with `ALLOW_SKIP_IF_UNREACHABLE: 'true'`.
-
-6. **Unit Test Suite Verification:**
-   - Added unit test suites for `errorReporting`, `analytics`, and `featureFlags`.
-   - **Total Suites & Tests**: 22 test suites, 128 passing tests.
 
 ---
 
@@ -161,7 +168,7 @@ $ npm test
 
 1. **Certificate Pinning (F1):**
    - Added `src/config/certificatePinning.ts` with explicit `disabled` mode and empty pin set.
-   - Full enforce **deferred** until prod HTTPS host + ops-published SPKI pins + report-only soak (documented in `docs/SECURITY.md`).
+   - Full enforce **deferred** until prod HTTPS host + ops-published SPKI pins + report-only soak (documented in `docs/SECURITY.md`). **Do not invent pins.**
 
 2. **Screenshot Security on Payment Screens (F2):**
    - `src/services/screenSecurity.ts` + `useSecureScreen` on `PaymentSuccessScreen` / `PaymentFailedScreen`.
@@ -185,20 +192,38 @@ $ npm test
    - `ENABLE_LOYALTY` / `ENABLE_PREFERENCES_EDIT` → Profile entry points
    - `ENABLE_REVIEWS` → OrderReview unavailable UI when off
 
-7. **Merge / PR Guidance (F7):**
-   - Prefer opening a PR from `security-remediation-plan-b` → `main` over additional feature work.
-   - Branch is GitHub Flow; squash-merge only; required CI: Lint and Type Check + tests.
-   - Suggested PR title: `feat(mobile): production program Phases 0–F (contract, parity, realtime, tests, observability, hardening)`
-   - PR body should link `docs/superpowers/plans/PROGRESS.md`, note Phase F residuals (pin enforce deferred; optional `expo-screen-capture` native install), and include test plan: `npm run typecheck && npm run lint && npm test` + `npm run smoke:dell` when Dell up.
+7. **Merge status (F7):**
+   - **DONE.** Squash-merged to `main` as `5efe8b4` via [PR #1](https://github.com/SVamseekar/masova-mobile/pull/1).
+   - GitHub Flow: feature branches → PR → squash-merge; required CI: Lint and Type Check + tests.
 
-8. **Program DoD honesty (plan §9):**
-   - Phases 0–F implemented on this branch.
-   - **Still open for true program close:** PR merge to `main` (item 9), prod Sentry test event from a **release** build (item 5), optional pin enforce + `expo-screen-capture` on release pipeline.
-
-### Phase F Verification
+### Phase F / post-merge verification baseline
 ```bash
 $ npm run typecheck   # exit 0
 $ npm run lint        # 0 errors (warnings only)
 $ npm test            # 25 suites, 138 tests GREEN
-$ npm run smoke:dell  # when Dell gateway up (4/4 previously)
+$ npm run smoke:dell  # when Dell gateway up (4/4 at 2026-08-10 closeout)
 ```
+
+---
+
+## Program Definition of Done (plan §9)
+
+| # | Criterion | Status |
+|---|-----------|--------|
+| 1 | Phase A vs live Dell / staging | **Met** |
+| 2 | Phases B–E done or explicitly deferred | **Met** (completed) |
+| 3 | README/docs match bare RN, Metro :8888 | **Met** |
+| 4 | CI quality gates green; no soft-fail on gates | **Met** |
+| 5 | Sentry test event from **release** build | **Open** — blocked on `SENTRY_DSN` (ops) |
+| 6 | E2E happy path recorded (Maestro / Z Flip 5) | **Partial** — assets + docs present; optional formal device sign-off |
+| 7 | `docs/API_CONTRACT.md` matches platform | **Met** at program merge |
+| 8 | Security: tokens not in AsyncStorage; no secrets in repo | **Met**; pin enforce still deferred |
+| 9 | PR merged via GitHub Flow | **Met** — PR #1 |
+
+---
+
+## What not to do
+
+- Do **not** re-implement Phases 0–F.
+- Do **not** invent backend endpoints, `SENTRY_DSN` values, or certificate pins.
+- Wait for a real `SENTRY_DSN` before release-build Sentry verification (ops item #2).
