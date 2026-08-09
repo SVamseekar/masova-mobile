@@ -27,22 +27,7 @@ import { customerApi } from '../../services/api';
 
 type AddAddressRouteProp = RouteProp<RootStackParamList, 'AddAddress'>;
 
-interface CustomerData {
-  id: string;
-  addresses?: Array<{
-    id: string;
-    label: string;
-    addressLine1: string;
-    addressLine2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    latitude?: number;
-    longitude?: number;
-    landmark?: string;
-    isDefault?: boolean;
-  }>;
-}
+import { Customer } from '../../types';
 
 const AddAddressScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -54,7 +39,7 @@ const AddAddressScreen: React.FC = () => {
   const existingAddress = route.params?.address;
   const isEditing = !!existingAddress;
 
-  const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
 
   const [label, setLabel] = useState(existingAddress?.label || 'Home');

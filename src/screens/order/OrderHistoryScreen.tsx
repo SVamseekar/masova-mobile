@@ -24,7 +24,7 @@ import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Badge, Button } from '../../components/ui';
 import { RootStackParamList, Order } from '../../types';
 import GuestPromptView from '../../components/GuestPromptView';
-import { orderApi } from '../../services/api';
+import { orderApi, customerApi } from '../../services/api';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -49,9 +49,17 @@ const OrderHistoryScreen: React.FC = () => {
 
     try {
       setError(null);
-      const response = await orderApi.getCustomerOrders(user.id);
-      // Sort by createdAt descending (most recent first)
-      const sortedOrders = (response.content || response || []).sort(
+      let customerId = user.id;
+      try {
+        const customer = await customerApi.getByUserId(user.id);
+        customerId = customer.id;
+      } catch {
+        // Fallback to user.id if customer profile query fails
+      }
+
+      const response = await orderApi.getCustomerOrders(customerId);
+      const rawOrders = Array.isArray(response) ? response : (response as any).content || [];
+      const sortedOrders = [...rawOrders].sort(
         (a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setOrders(sortedOrders);

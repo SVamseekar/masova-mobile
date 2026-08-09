@@ -160,20 +160,26 @@ const CheckoutScreen: React.FC = () => {
     let customerData: { id: string; name: string; email: string; phone: string };
 
     if (isAuthenticated && user) {
-      // Authenticated user
-      customerData = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone || '',
-      };
-    } else if (guestInfo) {
-      // Guest user - get or create customer
       try {
-        // Generate a guest userId based on email hash
-        const guestUserId = `guest_${guestInfo.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const customer = await customerApi.getByUserId(user.id);
+        customerData = {
+          id: customer.id,
+          name: customer.name || user.name,
+          email: customer.email || user.email,
+          phone: customer.phone || user.phone || '',
+        };
+      } catch (err) {
+        customerData = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+        };
+      }
+    } else if (guestInfo) {
+      try {
         const customer = await customerApi.getOrCreate({
-          userId: guestUserId,
+          userId: `guest_${guestInfo.email.replace(/[^a-zA-Z0-9]/g, '_')}`,
           email: guestInfo.email,
           phone: guestInfo.phone,
           name: guestInfo.name,
@@ -182,16 +188,15 @@ const CheckoutScreen: React.FC = () => {
           id: customer.id,
           name: customer.name,
           email: customer.email,
-          phone: customer.phone,
+          phone: customer.phone || '',
         };
       } catch (error: any) {
-        console.error('Failed to create guest customer:', error);
-        Alert.alert(
-          'Error',
-          'Failed to process guest checkout. Please try again.',
-          [{ text: 'OK' }]
-        );
-        return;
+        customerData = {
+          id: `guest_${Date.now()}`,
+          name: guestInfo.name,
+          email: guestInfo.email,
+          phone: guestInfo.phone,
+        };
       }
     } else {
       // No user and no guest info - shouldn't happen, but handle it
