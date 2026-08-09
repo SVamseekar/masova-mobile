@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+coverage/
 
 # Expo
 .expo/
@@ -39,3 +40,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# AI tooling — never track (no AI traces in this repo)
+CLAUDE.md
+.claude/
+.claude-context.md
+.cursor/
+.cursorrules
+.codex/
+.grok/
+.mcp.json
+.superpowers/

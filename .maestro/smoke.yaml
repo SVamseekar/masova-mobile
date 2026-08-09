@@ -1,0 +1,31 @@
+appId: com.masovamobile
+---
+# Maestro Smoke Test Path (Android / iOS)
+# Flow: App Launch -> Login / Guest Flow -> Menu Items Load
+
+- launchApp:
+    clearState: true
+
+# Option A: Login with test customer credentials
+- runFlow:
+    when:
+      visible: "Email Address"
+    commands:
+      - tapOn: "Email Address"
+      - inputText: "customer@masova.com"
+      - tapOn: "Password"
+      - inputText: "Password123!"
+      - tapOn: "Sign In"
+
+# Option B: Guest checkout entry if on store selection
+- runFlow:
+    when:
+      visible: "Continue as Guest"
+    commands:
+      - tapOn: "Continue as Guest"
+
+# Assert Menu screen and items load successfully
+- assertVisible:
+    text: ".*"
+    id: "StoreSelector"
+- assertVisible: "Categories"

@@ -1,0 +1,7 @@
+# Global ownership
+* @souravamseekarmarti
+
+# Critical API contract and security paths
+/src/services/ @souravamseekarmarti
+/src/config/ @souravamseekarmarti
+/docs/API_CONTRACT.md @souravamseekarmarti
