@@ -15,4 +15,6 @@ export const CONFIG = {
   DEFAULT_TIMEOUT_MS: 30000,
 };
 
+export * from './featureFlags';
 export default CONFIG;
+

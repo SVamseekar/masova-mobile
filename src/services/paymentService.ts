@@ -5,6 +5,7 @@
 
 import { paymentApi } from './api';
 import { PaymentInitResponse, PaymentVerifyRequest } from '../types';
+import { analytics } from './observability';
 
 interface RazorpayOptions {
   key: string;
@@ -138,14 +139,27 @@ export const processPayment = async (params: {
     });
 
     if (isVerified) {
+      analytics.track('payment.success', {
+        orderId: params.orderId,
+        transactionId: paymentResponse.razorpay_payment_id,
+        paymentMethod: 'ONLINE',
+      });
       return {
         success: true,
         paymentId: paymentResponse.razorpay_payment_id,
       };
     } else {
+      analytics.track('payment.fail', {
+        orderId: params.orderId,
+        reason: 'Payment verification failed',
+      });
       throw new Error('Payment verification failed');
     }
-  } catch (error) {
+  } catch (error: any) {
+    analytics.track('payment.fail', {
+      orderId: params.orderId,
+      reason: error?.message || 'Payment processing failed',
+    });
     console.error('Payment process failed:', error);
     throw error;
   }

@@ -22,7 +22,9 @@ import * as Haptics from 'expo-haptics';
 import { CONFIG } from '../../config';
 import { useTheme } from '../../hooks/useTheme';
 import { useMenuItems } from '../../hooks/useMenuQueries';
+import { analytics } from '../../services/observability';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
+
 import { Card, Chip, SearchBar, Badge } from '../../components/ui';
 import { StoreSelector } from '../../components/StoreSelector';
 import { RootStackParamList, MenuItem, Cuisine, Category } from '../../types';
@@ -473,6 +475,16 @@ const MenuScreen: React.FC = () => {
     cuisine: selectedCuisine,
     category: selectedCategory || undefined,
   });
+
+  React.useEffect(() => {
+    if (isError && error) {
+      analytics.track('menu.load.fail', {
+        storeId: selectedCuisine,
+        reason: error instanceof Error ? error.message : 'Menu query error',
+      });
+    }
+  }, [isError, error, selectedCuisine]);
+
 
   // Get categories for selected cuisine
   const availableCategories = useMemo(() => {

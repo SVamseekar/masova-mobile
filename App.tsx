@@ -14,6 +14,12 @@ import { StoreProvider } from './src/contexts/StoreContext';
 import { RootNavigator } from './src/navigation';
 import { RootStackParamList } from './src/types';
 
+import { OfflineBanner } from './src/components/ui';
+import { initErrorReporting } from './src/services/observability';
+
+// Initialize Sentry error reporting on application launch
+initErrorReporting();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,11 +29,11 @@ const queryClient = new QueryClient({
   },
 });
 
+
 export const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
 
-import { OfflineBanner } from './src/components/ui';
-
 const AppContent: React.FC = () => {
+
   const { isDark } = useTheme();
 
   return (

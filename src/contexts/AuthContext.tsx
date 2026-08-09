@@ -7,6 +7,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { authApi } from '../services/api';
 import { migrateLegacyTokens } from '../services/secureTokenStorage';
 import { User } from '../types';
+import { analytics, setUserContext, clearUserContext } from '../services/observability';
 
 interface AuthContextType {
   user: User | null;
@@ -40,6 +41,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (isAuth) {
         const storedUser = await authApi.getCurrentUser();
         setUser(storedUser);
+        if (storedUser) {
+          setUserContext({ id: storedUser.id, email: storedUser.email, userType: 'CUSTOMER' });
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -53,8 +57,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authApi.login({ email, password });
       setUser(response.user);
+      setUserContext({ id: response.user.id, email: response.user.email, userType: 'CUSTOMER' });
+      analytics.track('auth.login.success', { userId: response.user.id, method: 'email' });
     } catch (error: any) {
       console.error('Login failed:', error);
+      analytics.track('auth.login.fail', { email, reason: error?.message || 'Login failed' });
       throw error;
     }
   };
@@ -63,8 +70,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authApi.loginWithGoogle(idToken);
       setUser(response.user);
+      setUserContext({ id: response.user.id, email: response.user.email, userType: 'CUSTOMER' });
+      analytics.track('auth.login.success', { userId: response.user.id, method: 'google' });
     } catch (error: any) {
       console.error('Google login failed:', error);
+      analytics.track('auth.login.fail', { reason: error?.message || 'Google login failed' });
       throw error;
     }
   };
@@ -85,9 +95,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
+      clearUserContext();
       setUser(null);
     }
   };
+
 
   const refreshUser = async () => {
     try {

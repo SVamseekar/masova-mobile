@@ -32,6 +32,8 @@ import { PaymentService } from '../../services/paymentService';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { customerApi, deliveryApi } from '../../services/api';
 import GuestPromptView from '../../components/GuestPromptView';
+import { analytics } from '../../services/observability';
+
 
 type PaymentMethod = 'ONLINE' | 'CASH' | 'UPI';
 type OrderType = 'DELIVERY' | 'TAKEAWAY';
@@ -272,6 +274,14 @@ const CheckoutScreen: React.FC = () => {
       // Create order
       const order = await createOrderMutation.mutateAsync(orderData);
 
+      analytics.track('order.create.success', {
+        orderId: order.id,
+        customerId: customerData.id,
+        totalAmount: actualTotal / 100,
+        paymentMethod,
+        orderType,
+      });
+
       // Handle payment based on payment method
       if (paymentMethod === 'ONLINE' || paymentMethod === 'UPI') {
         try {
@@ -313,6 +323,11 @@ const CheckoutScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Order creation failed:', error);
+      analytics.track('order.create.fail', {
+        customerId: user?.id,
+        totalAmount: actualTotal / 100,
+        reason: error?.response?.data?.message || error?.message || 'Failed to place order',
+      });
       submittingRef.current = false;
       setIsSubmitting(false);
       Alert.alert(
@@ -321,6 +336,7 @@ const CheckoutScreen: React.FC = () => {
         [{ text: 'OK' }]
       );
     }
+
   };
 
   const renderAddressCard = (address: DeliveryAddress) => {
