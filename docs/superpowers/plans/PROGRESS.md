@@ -77,3 +77,4 @@ $ npm test
    - Store retrieval (`GET /api/stores`)
    - Customer lookup (`GET /api/customers?userId=6a78c3221b7266b64888a0fa`)
 7. **Quality Gates:** 0 typecheck errors, 0 lint errors, 16/16 unit tests passing.
+8. **Phase B Residual P0 Fix (Commit `df43cc8`):** Mapped `isWithinDeliveryZone` field from live Dell gateway response (`GET /api/delivery/zones?storeId=&lat=&lng=&check=true`) to `inZone` in `deliveryApi.checkDeliveryZone`. Hardened `CheckoutScreen.tsx` and added unit test assertion verifying `isWithinDeliveryZone: false` correctly evaluates `inZone === false` and blocks out-of-radius checkout. Live response verified against Dell gateway (`{"isWithinDeliveryZone":false}`).
