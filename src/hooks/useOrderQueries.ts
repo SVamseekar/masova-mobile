@@ -2,7 +2,7 @@
  * React Query hooks for order-related API calls
  */
 
-import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderApi, deliveryApi } from '../services/api';
 import { Order, CreateOrderRequest } from '../types';
 
@@ -14,9 +14,9 @@ export const useOrder = (orderId: string) => {
     queryKey: ['orders', orderId],
     queryFn: () => orderApi.getById(orderId),
     enabled: !!orderId,
-    staleTime: 0, // Always consider data stale
-    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
-    refetchIntervalInBackground: false, // Don't poll when app is in background
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 };
 
@@ -28,7 +28,7 @@ export const useTrackOrder = (orderId: string) => {
     queryKey: ['orders', 'track', orderId],
     queryFn: () => orderApi.track(orderId),
     enabled: !!orderId,
-    refetchInterval: 15000, // 15 seconds
+    refetchInterval: 15000,
   });
 };
 
@@ -40,7 +40,7 @@ export const useCustomerOrders = (customerId: string, page?: number) => {
     queryKey: ['orders', 'customer', customerId, page],
     queryFn: () => orderApi.getCustomerOrders(customerId, { page, size: 20 }),
     enabled: !!customerId,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 2,
   });
 };
 
@@ -52,7 +52,7 @@ export const useDeliveryTracking = (orderId: string) => {
     queryKey: ['delivery', 'track', orderId],
     queryFn: () => deliveryApi.track(orderId),
     enabled: !!orderId,
-    refetchInterval: 10000, // 10 seconds for live tracking
+    refetchInterval: 10000,
   });
 };
 
@@ -65,9 +65,7 @@ export const useCreateOrder = () => {
   return useMutation({
     mutationFn: (data: CreateOrderRequest) => orderApi.create(data),
     onSuccess: (newOrder) => {
-      // Invalidate and refetch customer orders
       queryClient.invalidateQueries({ queryKey: ['orders', 'customer'] });
-      // Add the new order to cache
       queryClient.setQueryData(['orders', newOrder.id], newOrder);
     },
   });
@@ -82,7 +80,6 @@ export const useCancelOrder = () => {
   return useMutation({
     mutationFn: (orderId: string) => orderApi.cancel(orderId),
     onSuccess: (_, orderId) => {
-      // Invalidate the specific order and customer orders list
       queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
       queryClient.invalidateQueries({ queryKey: ['orders', 'customer'] });
     },

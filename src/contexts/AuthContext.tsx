@@ -6,14 +6,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authApi } from '../services/api';
 import { migrateLegacyTokens } from '../services/secureTokenStorage';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  type: string;  // Backend returns 'type', not 'role'
-}
+import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -21,7 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
-  register: (data: { name: string; email: string; phone: string; password: string }) => Promise<void>;
+  register: (data: { name: string; email: string; phone?: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -36,7 +29,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in on mount
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -59,11 +51,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authApi.login(email, password);
+      const response = await authApi.login({ email, password });
       setUser(response.user);
     } catch (error: any) {
       console.error('Login failed:', error);
-      console.error('Error response:', error.response?.data);
       throw error;
     }
   };
@@ -78,14 +69,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (data: { name: string; email: string; phone: string; password: string }) => {
+  const register = async (data: { name: string; email: string; phone?: string; password: string }) => {
     try {
       await authApi.register(data);
-      // After registration, log the user in
       await login(data.email, data.password);
     } catch (error: any) {
       console.error('Registration failed:', error);
-      console.error('Error response:', error.response?.data);
       throw error;
     }
   };

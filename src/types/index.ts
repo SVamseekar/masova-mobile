@@ -1,6 +1,6 @@
 /**
  * MaSoVa Mobile Type Definitions
- * Matches backend DTOs
+ * Matches platform backend DTOs (Single Source of Truth)
  */
 
 // =============================================================================
@@ -15,13 +15,15 @@ export interface User {
   role: 'CUSTOMER' | 'STAFF' | 'MANAGER' | 'DRIVER';
   profilePicture?: string;
   storeId?: string;
+  type?: string;
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  token?: string; // Alias for backward compatibility
   refreshToken: string;
   user: User;
-  expiresIn: number;
+  expiresIn?: number;
 }
 
 export interface LoyaltyInfo {
@@ -56,6 +58,10 @@ export interface CustomerPreferences {
   allergenAlerts?: string[];
   dietaryRestrictions?: string[];
   cuisinePreferences?: string[];
+  spicePreference?: string;
+  notificationEnabled?: boolean;
+  smsEnabled?: boolean;
+  emailEnabled?: boolean;
 }
 
 export interface Customer {
@@ -75,7 +81,6 @@ export interface Customer {
 export interface DeliveryAddress {
   id: string;
   label: string;
-  // Backend uses addressLine1, but we also support 'street' for backwards compatibility
   addressLine1?: string;
   street?: string; // Alias for addressLine1
   addressLine2?: string;
@@ -91,7 +96,7 @@ export interface DeliveryAddress {
     longitude: number;
   };
   landmark?: string;
-  instructions?: string; // Alias for landmark
+  instructions?: string;
   isDefault?: boolean;
   createdAt?: string;
 }
@@ -112,13 +117,11 @@ export type Cuisine =
   | 'DESSERTS';
 
 export type Category =
-  // South Indian
   | 'DOSA'
   | 'IDLY_VADA'
   | 'SOUTH_INDIAN_MEALS'
   | 'RICE_VARIETIES'
   | 'BIRYANI'
-  // North Indian
   | 'CURRY_GRAVY'
   | 'BREAD_ROTI'
   | 'TANDOOR'
@@ -126,32 +129,26 @@ export type Category =
   | 'DAL_DISHES'
   | 'CHAPATI_ROTI'
   | 'NAAN_KULCHA'
-  // Indo-Chinese
   | 'NOODLES'
   | 'FRIED_RICE'
   | 'MANCHURIAN'
   | 'MOMOS'
-  // Chinese
   | 'SOUP'
   | 'STARTERS'
   | 'MAIN_COURSE'
   | 'DIMSUM'
-  // Italian
   | 'PIZZA'
   | 'PASTA'
   | 'RISOTTO'
   | 'SALAD'
-  // American
   | 'BURGER'
   | 'SANDWICH'
   | 'FRIES_SIDES'
   | 'HOT_DOGS'
   | 'SIDES'
-  // Continental
   | 'GRILLED'
   | 'BAKED'
   | 'SIZZLERS'
-  // Beverages
   | 'HOT_BEVERAGES'
   | 'COLD_BEVERAGES'
   | 'HOT_DRINKS'
@@ -159,14 +156,12 @@ export type Category =
   | 'TEA_CHAI'
   | 'JUICES'
   | 'SHAKES'
-  // Desserts
   | 'ICE_CREAM'
   | 'CAKES'
   | 'INDIAN_SWEETS'
   | 'PASTRIES'
   | 'COOKIES_BROWNIES'
   | 'DESSERT_SPECIALS'
-  // Legacy categories for backwards compatibility
   | 'CURRY'
   | 'RICE'
   | 'BEVERAGE'
@@ -282,16 +277,19 @@ export type OrderStatus =
   | 'SERVED'
   | 'CANCELLED';
 
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
+// Backend order payment status is PENDING | PAID | FAILED | REFUNDED (SUCCESS alias supported)
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'SUCCESS';
 
-export type PaymentMethod = 'ONLINE' | 'CASH' | 'CARD' | 'UPI';
+// Backend order payment method is CASH | CARD | UPI | WALLET (ONLINE alias supported in UI)
+export type PaymentMethod = 'CASH' | 'CARD' | 'UPI' | 'WALLET' | 'ONLINE';
 
-export type OrderType = 'DINE_IN' | 'DELIVERY' | 'TAKEAWAY' | 'COLLECTION';
+export type OrderType = 'DELIVERY' | 'TAKEAWAY' | 'DINE_IN' | 'COLLECTION';
 
 export interface Order {
   id: string;
   orderNumber: string;
   customerId: string;
+  customerName?: string;
   storeId: string;
   items: OrderItem[];
   subtotal: number;
@@ -324,9 +322,16 @@ export interface OrderItem {
 }
 
 export interface CreateOrderRequest {
+  storeId: string;
+  customerId?: string;
+  customerName?: string;
+  orderType: OrderType;
+  paymentMethod: PaymentMethod;
   items: Array<{
     menuItemId: string;
+    name?: string;
     quantity: number;
+    price?: number;
     variant?: string;
     customizations?: string[];
     specialInstructions?: string;
@@ -339,10 +344,7 @@ export interface CreateOrderRequest {
     coordinates?: { latitude: number; longitude: number };
     instructions?: string;
   };
-  paymentMethod: PaymentMethod;
-  orderType: OrderType;
-  customerId?: string;
-  storeId: string;
+  notes?: string;
 }
 
 // =============================================================================
@@ -381,7 +383,6 @@ export interface DeliveryTracking {
   acceptedAt?: string;
   pickedUpAt?: string;
   deliveredAt?: string;
-  // Convenience flat fields (some backends return these directly)
   driverLat?: number;
   driverLon?: number;
   restaurantLat?: number;
@@ -395,22 +396,30 @@ export interface DeliveryTracking {
 export interface PaymentInitRequest {
   orderId: string;
   amount: number;
+  customerId?: string;
   customerEmail: string;
   customerPhone: string;
+  storeId?: string;
+  paymentMethod?: PaymentMethod;
 }
 
 export interface PaymentInitResponse {
-  razorpayOrderId: string;
-  razorpayKeyId: string;
+  paymentId?: string;
+  razorpayOrderId?: string;
+  razorpayKeyId?: string;
+  stripeClientSecret?: string;
   amount: number;
   currency: string;
+  status: string;
 }
 
 export interface PaymentVerifyRequest {
   orderId: string;
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
+  paymentId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  stripePaymentIntentId?: string;
 }
 
 // =============================================================================
@@ -429,12 +438,17 @@ export interface StoreAddress {
 
 export interface Store {
   id: string;
-  storeCode?: string;  // DOM001, DOM002, etc. - used for menu filtering
+  storeCode?: string; // e.g., DOM001
   name: string;
   address: StoreAddress;
   phone: string;
   email: string;
   isOpen: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  operatingConfig?: Record<string, any>;
+  currency?: string;
+  countryCode?: string;
+  locale?: string;
   openingTime: string;
   closingTime: string;
   deliveryRadius: number;
@@ -455,13 +469,22 @@ export interface Review {
   orderId: string;
   customerId: string;
   customerName: string;
-  rating: number;
+  overallRating: number;
+  rating?: number; // Compatibility alias for overallRating
   comment?: string;
   foodRating?: number;
   deliveryRating?: number;
   createdAt: string;
   managerResponse?: string;
   managerResponseAt?: string;
+}
+
+export interface CreateReviewRequest {
+  orderId: string;
+  overallRating: number;
+  comment?: string;
+  foodRating?: number;
+  deliveryRating?: number;
 }
 
 // =============================================================================
@@ -529,6 +552,8 @@ export type RootStackParamList = {
   Search: undefined;
   Notifications: undefined;
   Chat: undefined;
+  Preferences: undefined;
+  NotificationSettings: undefined;
 };
 
 export type MainTabParamList = {

@@ -2,14 +2,13 @@
  * React Query hooks for menu-related API calls
  */
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { menuApi } from '../services/api';
 import { MenuItem } from '../types';
 import { useSelectedStore } from './useSelectedStore';
 
 /**
- * Hook to fetch all menu items
- * Includes storeId in query key to ensure proper cache invalidation when store changes
+ * Hook to fetch all menu items for the selected store
  */
 export const useMenuItems = (params?: {
   category?: string;
@@ -20,7 +19,7 @@ export const useMenuItems = (params?: {
 
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'items', selectedStoreId, params],
-    queryFn: () => menuApi.getAll(params),
+    queryFn: () => menuApi.getMenu({ ...params, storeId: selectedStoreId || undefined }),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
@@ -31,7 +30,7 @@ export const useMenuItems = (params?: {
 export const useMenuItem = (id: string) => {
   return useQuery<MenuItem>({
     queryKey: ['menu', 'item', id],
-    queryFn: () => menuApi.getById(id),
+    queryFn: () => menuApi.getMenuItem(id),
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
   });
@@ -39,15 +38,14 @@ export const useMenuItem = (id: string) => {
 
 /**
  * Hook to fetch recommended items
- * Includes storeId in query key to ensure proper cache invalidation when store changes
  */
 export const useRecommendedItems = () => {
   const { selectedStoreId } = useSelectedStore();
 
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'recommended', selectedStoreId],
-    queryFn: () => menuApi.getRecommended(),
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    queryFn: () => menuApi.getRecommended(selectedStoreId || undefined),
+    staleTime: 1000 * 60 * 10,
   });
 };
 
@@ -55,11 +53,13 @@ export const useRecommendedItems = () => {
  * Hook to search menu items
  */
 export const useMenuSearch = (query: string) => {
+  const { selectedStoreId } = useSelectedStore();
+
   return useQuery<MenuItem[]>({
-    queryKey: ['menu', 'search', query],
-    queryFn: () => menuApi.search(query),
-    enabled: query.length > 2, // Only search if query is at least 3 characters
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    queryKey: ['menu', 'search', selectedStoreId, query],
+    queryFn: () => menuApi.searchMenu(query, selectedStoreId || undefined),
+    enabled: query.length > 2,
+    staleTime: 1000 * 60 * 2,
   });
 };
 
@@ -67,9 +67,11 @@ export const useMenuSearch = (query: string) => {
  * Hook to fetch items by category
  */
 export const useMenuByCategory = (category: string) => {
+  const { selectedStoreId } = useSelectedStore();
+
   return useQuery<MenuItem[]>({
-    queryKey: ['menu', 'category', category],
-    queryFn: () => menuApi.getByCategory(category),
+    queryKey: ['menu', 'category', selectedStoreId, category],
+    queryFn: () => menuApi.getMenu({ storeId: selectedStoreId || undefined, category }),
     enabled: !!category,
     staleTime: 1000 * 60 * 5,
   });
@@ -79,9 +81,11 @@ export const useMenuByCategory = (category: string) => {
  * Hook to fetch items by cuisine
  */
 export const useMenuByCuisine = (cuisine: string) => {
+  const { selectedStoreId } = useSelectedStore();
+
   return useQuery<MenuItem[]>({
-    queryKey: ['menu', 'cuisine', cuisine],
-    queryFn: () => menuApi.getByCuisine(cuisine),
+    queryKey: ['menu', 'cuisine', selectedStoreId, cuisine],
+    queryFn: () => menuApi.getMenu({ storeId: selectedStoreId || undefined, cuisine }),
     enabled: !!cuisine,
     staleTime: 1000 * 60 * 5,
   });
