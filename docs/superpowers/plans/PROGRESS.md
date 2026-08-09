@@ -16,7 +16,7 @@
 | **Phase C** | Realtime & Resilience | **COMPLETED** | WS exponential backoff & token refresh, order + delivery WS topics with REST fallback, store-switch cart guard, global offline banner, checkout double-submit lock, a11y labels. 23 unit tests GREEN. |
 | **Phase D** | Testing Hardening | **COMPLETED** | Unit/Service coverage >70% (100% on `src/services/api` & `src/utils`), 4 component tests, Maestro Android smoke path, live Dell gateway smoke script passing, CI quality gates active |
 | **Phase E** | Observability & Release | **COMPLETED** | Sentry React Native error reporting service, core analytics events (`auth.login`, `order.create`, `payment`, `menu.load.fail`), local feature flags module, complete `docs/RELEASE.md` (versioning, signed release pipeline, Play Store checklist), Dell smoke script auth reachability tightened. 22 unit test suites (128 tests) passing GREEN. |
-| **Phase F** | Production Hardening | Next | Scheduled |
+| **Phase F** | Production Hardening | **COMPLETED** | Certificate pinning plan (enforce deferred), payment screenshot security hook, FlatList virtualization + `expo-image` cache, security checklist, runbook drills A–C, feature flags wired to UI/flows. Quality gates GREEN. |
 
 ---
 
@@ -154,3 +154,51 @@ $ npm test
 6. **Unit Test Suite Verification:**
    - Added unit test suites for `errorReporting`, `analytics`, and `featureFlags`.
    - **Total Suites & Tests**: 22 test suites, 128 passing tests.
+
+---
+
+## Phase F Deliverables Summary (Production Hardening)
+
+1. **Certificate Pinning (F1):**
+   - Added `src/config/certificatePinning.ts` with explicit `disabled` mode and empty pin set.
+   - Full enforce **deferred** until prod HTTPS host + ops-published SPKI pins + report-only soak (documented in `docs/SECURITY.md`).
+
+2. **Screenshot Security on Payment Screens (F2):**
+   - `src/services/screenSecurity.ts` + `useSecureScreen` on `PaymentSuccessScreen` / `PaymentFailedScreen`.
+   - Soft-depends on optional `expo-screen-capture` (no-ops when unlinked; install for release FLAG_SECURE).
+
+3. **Perf: List Virtualization + Image Cache (F3):**
+   - Shared `src/utils/listPerf.ts` applied to Menu + Order History FlatLists (`removeClippedSubviews`, windowing).
+   - Menu / Item Detail / Cart images use `expo-image` with `cachePolicy="memory-disk"`.
+
+4. **Security Checklist (F4):**
+   - Expanded `docs/SECURITY.md` with pass/fail checklist: Keychain tokens, no secrets in git, gateway-denied routes not called, headers, pinning plan, capture protection.
+
+5. **Runbook Drills (F5):**
+   - Expanded `docs/RUNBOOK.md` with executable drills: **A** gateway down, **B** payment fail, **C** token revoke — plus log template.
+
+6. **Feature Flag Wiring (F6):**
+   - `ENABLE_OFFLINE_BANNER` → `OfflineBanner`
+   - `ENABLE_STRICT_STORE_GUARD` → store switch confirm dialog
+   - `ENABLE_DELIVERY_TRACKING_WS` → order tracking WS
+   - `ENABLE_PAYMENT_GATEWAY` → online/UPI options + `PaymentService.process`
+   - `ENABLE_LOYALTY` / `ENABLE_PREFERENCES_EDIT` → Profile entry points
+   - `ENABLE_REVIEWS` → OrderReview unavailable UI when off
+
+7. **Merge / PR Guidance (F7):**
+   - Prefer opening a PR from `security-remediation-plan-b` → `main` over additional feature work.
+   - Branch is GitHub Flow; squash-merge only; required CI: Lint and Type Check + tests.
+   - Suggested PR title: `feat(mobile): production program Phases 0–F (contract, parity, realtime, tests, observability, hardening)`
+   - PR body should link `docs/superpowers/plans/PROGRESS.md`, note Phase F residuals (pin enforce deferred; optional `expo-screen-capture` native install), and include test plan: `npm run typecheck && npm run lint && npm test` + `npm run smoke:dell` when Dell up.
+
+8. **Program DoD honesty (plan §9):**
+   - Phases 0–F implemented on this branch.
+   - **Still open for true program close:** PR merge to `main` (item 9), prod Sentry test event from a **release** build (item 5), optional pin enforce + `expo-screen-capture` on release pipeline.
+
+### Phase F Verification
+```bash
+$ npm run typecheck   # exit 0
+$ npm run lint        # 0 errors (warnings only)
+$ npm test            # 25 suites, 138 tests GREEN
+$ npm run smoke:dell  # when Dell gateway up (4/4 previously)
+```

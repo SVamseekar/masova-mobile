@@ -10,9 +10,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -136,7 +136,13 @@ const CartScreen: React.FC = () => {
   const renderCartItem = (item: any) => (
     <Card key={item.id} elevation="sm" style={styles.cartItem}>
       <View style={styles.itemRow}>
-        <Image source={{ uri: item.menuItem.imageUrl }} style={styles.itemImage} />
+        <Image
+          source={{ uri: item.menuItem.imageUrl }}
+          style={styles.itemImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={item.id}
+        />
         <View style={styles.itemDetails}>
           <View style={styles.itemHeader}>
             <Text

@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
+import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Badge } from '../../components/ui';
 import { RootStackParamList, Customer } from '../../types';
@@ -198,6 +199,7 @@ const ProfileScreen: React.FC = () => {
 
 
         {/* Loyalty Card */}
+        {isFeatureEnabled('ENABLE_LOYALTY') && (
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => navigation.navigate('LoyaltyHistory')}
@@ -268,6 +270,7 @@ const ProfileScreen: React.FC = () => {
             </View>
           </View>
         </TouchableOpacity>
+        )}
 
         {/* Menu Sections */}
         <Card elevation="sm" style={styles.menuCard}>
@@ -283,18 +286,22 @@ const ProfileScreen: React.FC = () => {
             onPress={() => navigation.navigate('AddressManagement')}
             theme={theme}
           />
-          <MenuItem
-            icon="nutrition-outline"
-            label="Food & Dietary Preferences"
-            onPress={() => navigation.navigate('Preferences')}
-            theme={theme}
-          />
-          <MenuItem
-            icon="gift-outline"
-            label="Loyalty & Points History"
-            onPress={() => navigation.navigate('LoyaltyHistory')}
-            theme={theme}
-          />
+          {isFeatureEnabled('ENABLE_PREFERENCES_EDIT') && (
+            <MenuItem
+              icon="nutrition-outline"
+              label="Food & Dietary Preferences"
+              onPress={() => navigation.navigate('Preferences')}
+              theme={theme}
+            />
+          )}
+          {isFeatureEnabled('ENABLE_LOYALTY') && (
+            <MenuItem
+              icon="gift-outline"
+              label="Loyalty & Points History"
+              onPress={() => navigation.navigate('LoyaltyHistory')}
+              theme={theme}
+            />
+          )}
         </Card>
 
         <Card elevation="sm" style={styles.menuCard}>

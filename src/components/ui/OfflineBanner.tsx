@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useTheme } from '../../hooks/useTheme';
+import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, typography } from '../../styles';
 
 export const OfflineBanner: React.FC = () => {
@@ -16,7 +17,7 @@ export const OfflineBanner: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  if (!isOffline) {
+  if (!isFeatureEnabled('ENABLE_OFFLINE_BANNER') || !isOffline) {
     return null;
   }
 

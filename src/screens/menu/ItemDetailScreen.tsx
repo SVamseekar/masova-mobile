@@ -9,10 +9,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -207,7 +207,13 @@ const ItemDetailScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       {/* Header Image */}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: menuItem.imageUrl }} style={styles.image} />
+        <Image
+          source={{ uri: menuItem.imageUrl }}
+          style={styles.image}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
         <LinearGradient
           colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent']}
           style={styles.imageGradient}

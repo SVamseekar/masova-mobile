@@ -16,5 +16,6 @@ export const CONFIG = {
 };
 
 export * from './featureFlags';
+export * from './certificatePinning';
 export default CONFIG;
 

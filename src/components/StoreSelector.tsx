@@ -15,6 +15,7 @@ import { Store } from '../types';
 import { useTheme } from '../hooks/useTheme';
 import { useStoreContext } from '../contexts/StoreContext';
 import { useCart } from '../contexts/CartContext';
+import { isFeatureEnabled } from '../config/featureFlags';
 
 interface StoreSelectorProps {
   onStoreChange?: (store: Store | null) => void;
@@ -66,7 +67,13 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
   };
 
   const handleStoreSelect = async (store: Store) => {
-    if (selectedStore && selectedStore.id !== store.id && itemCount > 0) {
+    const strictGuard = isFeatureEnabled('ENABLE_STRICT_STORE_GUARD');
+    if (
+      strictGuard &&
+      selectedStore &&
+      selectedStore.id !== store.id &&
+      itemCount > 0
+    ) {
       Alert.alert(
         'Switch Store?',
         'Your cart contains items from your current store. Switching stores will clear your cart. Do you want to proceed?',
@@ -83,6 +90,10 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
         ]
       );
       return;
+    }
+    // When guard is off, still clear cart on store change so prices/items stay store-scoped
+    if (selectedStore && selectedStore.id !== store.id && itemCount > 0) {
+      clearCart();
     }
     await performStoreSelect(store);
   };

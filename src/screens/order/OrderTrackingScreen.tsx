@@ -22,6 +22,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../hooks/useTheme';
+import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Card, Badge, FloatingChatBubble } from '../../components/ui';
 import { RootStackParamList, OrderStatus, DeliveryTracking } from '../../types';
@@ -80,10 +81,10 @@ const OrderTrackingScreen: React.FC = () => {
 
   const { orderId } = route.params;
 
-  // Real-time order tracking with WebSocket
+  // Real-time order tracking with WebSocket (gated by feature flag)
   const { order, deliveryTracking: wsDelivery, isLoading, wsConnected, wsState, error } = useOrderTracking({
     orderId,
-    enableWebSocket: true,
+    enableWebSocket: isFeatureEnabled('ENABLE_DELIVERY_TRACKING_WS'),
   });
 
   const [restDeliveryInfo, setRestDeliveryInfo] = useState<DeliveryTracking | null>(null);

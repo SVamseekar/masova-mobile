@@ -25,6 +25,7 @@ import { Card, Badge, Button } from '../../components/ui';
 import { RootStackParamList, Order } from '../../types';
 import GuestPromptView from '../../components/GuestPromptView';
 import { orderApi, customerApi } from '../../services/api';
+import { getListPerfProps } from '../../utils/listPerf';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -220,6 +221,7 @@ const OrderHistoryScreen: React.FC = () => {
           keyExtractor={(item) => item.id!}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          {...getListPerfProps()}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

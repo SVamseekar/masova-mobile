@@ -23,6 +23,7 @@ import { spacing, borderRadius, typography } from '../../styles';
 import { Button } from '../../components/ui';
 import { RootStackParamList } from '../../types';
 import { useCart } from '../../contexts/CartContext';
+import { useSecureScreen } from '../../services/screenSecurity';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -33,6 +34,9 @@ const PaymentSuccessScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { clearCart } = useCart();
+
+  // Block screenshots / recents preview on payment confirmation (order id visible)
+  useSecureScreen(true);
 
   const { orderId } = route.params;
 

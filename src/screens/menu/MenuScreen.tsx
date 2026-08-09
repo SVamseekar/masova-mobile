@@ -10,9 +10,9 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +24,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useMenuItems } from '../../hooks/useMenuQueries';
 import { analytics } from '../../services/observability';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
+import { getListPerfProps } from '../../utils/listPerf';
 
 import { Card, Chip, SearchBar, Badge } from '../../components/ui';
 import { StoreSelector } from '../../components/StoreSelector';
@@ -641,7 +642,14 @@ const MenuScreen: React.FC = () => {
           </View>
           <View style={styles.imageContainer}>
             {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.itemImage}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                recyclingKey={item.id}
+                transition={150}
+              />
             ) : (
               <View style={[styles.itemImage, styles.placeholderImage, { backgroundColor: theme.colors.surface2 }]}>
                 <Ionicons name="image-outline" size={48} color={theme.colors.text3} />
@@ -839,6 +847,7 @@ const MenuScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.listContent, { paddingBottom: 120 }]}
           showsVerticalScrollIndicator={false}
+          {...getListPerfProps()}
           ListHeaderComponent={
             <Text style={[styles.resultCount, { color: theme.colors.text2 }]}>
               {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found

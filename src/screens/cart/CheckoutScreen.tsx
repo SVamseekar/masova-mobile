@@ -33,6 +33,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { customerApi, deliveryApi } from '../../services/api';
 import GuestPromptView from '../../components/GuestPromptView';
 import { analytics } from '../../services/observability';
+import { isFeatureEnabled } from '../../config/featureFlags';
 
 
 type PaymentMethod = 'ONLINE' | 'CASH' | 'UPI';
@@ -101,8 +102,18 @@ const CheckoutScreen: React.FC = () => {
     }
     return null;
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('ONLINE');
+  const paymentGatewayEnabled = isFeatureEnabled('ENABLE_PAYMENT_GATEWAY');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    paymentGatewayEnabled ? 'ONLINE' : 'CASH'
+  );
   const [orderType, setOrderType] = useState<OrderType>('DELIVERY');
+
+  // Keep payment method valid when gateway flag is off
+  useEffect(() => {
+    if (!paymentGatewayEnabled && paymentMethod !== 'CASH') {
+      setPaymentMethod('CASH');
+    }
+  }, [paymentGatewayEnabled, paymentMethod]);
 
   // Fetch saved addresses when screen gains focus (to pick up newly added addresses)
   const fetchAddresses = useCallback(async () => {
@@ -284,37 +295,43 @@ const CheckoutScreen: React.FC = () => {
 
       // Handle payment based on payment method
       if (paymentMethod === 'ONLINE' || paymentMethod === 'UPI') {
-        try {
-          // Process online payment
-          // Backend expects amount in rupees (not paise), so divide by 100
-          // Use actualTotal which accounts for order type (no delivery fee for TAKEAWAY)
-          const paymentResult = await PaymentService.process({
-            orderId: order.id,
-            amount: actualTotal / 100, // Convert paise to rupees for backend
-            customerId: customerData.id,
-            customerName: customerData.name,
-            customerEmail: customerData.email,
-            customerPhone: customerData.phone,
-            storeId: selectedStoreId || 'default-store-id',
-          });
+        if (!isFeatureEnabled('ENABLE_PAYMENT_GATEWAY')) {
+          // Gateway disabled: treat as deferred/COD-style confirmation (order already created)
+          clearCart();
+          navigation.replace('PaymentSuccess', { orderId: order.id });
+        } else {
+          try {
+            // Process online payment
+            // Backend expects amount in rupees (not paise), so divide by 100
+            // Use actualTotal which accounts for order type (no delivery fee for TAKEAWAY)
+            const paymentResult = await PaymentService.process({
+              orderId: order.id,
+              amount: actualTotal / 100, // Convert paise to rupees for backend
+              customerId: customerData.id,
+              customerName: customerData.name,
+              customerEmail: customerData.email,
+              customerPhone: customerData.phone,
+              storeId: selectedStoreId || 'default-store-id',
+            });
 
-          if (paymentResult.success) {
-            // Payment successful - navigate to success screen
-            clearCart();
-            navigation.replace('PaymentSuccess', { orderId: order.id });
+            if (paymentResult.success) {
+              // Payment successful - navigate to success screen
+              clearCart();
+              navigation.replace('PaymentSuccess', { orderId: order.id });
+            }
+          } catch (paymentError: any) {
+            // Payment failed or cancelled - navigate to failed screen
+            console.error('Payment failed:', paymentError);
+            const errorMessage = paymentError.message === 'Payment cancelled'
+              ? 'Payment was cancelled. Your order is saved but not confirmed.'
+              : 'Payment processing failed. Please try again or choose a different payment method.';
+            submittingRef.current = false;
+            setIsSubmitting(false);
+            navigation.replace('PaymentFailed', {
+              orderId: order.id,
+              error: errorMessage,
+            });
           }
-        } catch (paymentError: any) {
-          // Payment failed or cancelled - navigate to failed screen
-          console.error('Payment failed:', paymentError);
-          const errorMessage = paymentError.message === 'Payment cancelled'
-            ? 'Payment was cancelled. Your order is saved but not confirmed.'
-            : 'Payment processing failed. Please try again or choose a different payment method.';
-          submittingRef.current = false;
-          setIsSubmitting(false);
-          navigation.replace('PaymentFailed', {
-            orderId: order.id,
-            error: errorMessage,
-          });
         }
       } else {
         // Cash on delivery - no payment needed, clear cart and go directly to success
@@ -635,10 +652,15 @@ const CheckoutScreen: React.FC = () => {
           <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
             Payment Method
           </Text>
-          {renderPaymentOption('ONLINE', 'card', 'Pay Online', 'Credit/Debit Card, Net Banking')}
-          {renderPaymentOption('UPI', 'phone-portrait', 'UPI', 'Google Pay, PhonePe, Paytm')}
-          {/* Cash payment only available for TAKEAWAY orders */}
-          {orderType === 'TAKEAWAY' && renderPaymentOption('CASH', 'cash', 'Cash on Pickup', 'Pay when you pick up your order')}
+          {isFeatureEnabled('ENABLE_PAYMENT_GATEWAY') && (
+            <>
+              {renderPaymentOption('ONLINE', 'card', 'Pay Online', 'Credit/Debit Card, Net Banking')}
+              {renderPaymentOption('UPI', 'phone-portrait', 'UPI', 'Google Pay, PhonePe, Paytm')}
+            </>
+          )}
+          {/* Cash payment only available for TAKEAWAY orders (or when gateway is off) */}
+          {(orderType === 'TAKEAWAY' || !isFeatureEnabled('ENABLE_PAYMENT_GATEWAY')) &&
+            renderPaymentOption('CASH', 'cash', orderType === 'TAKEAWAY' ? 'Cash on Pickup' : 'Cash on Delivery', 'Pay when you receive your order')}
         </View>
 
         {/* Order Summary */}

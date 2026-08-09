@@ -35,6 +35,19 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }) => children,
 }));
 
+jest.mock('expo-image', () => {
+  const React = require('react');
+  const { Image } = require('react-native');
+  return {
+    Image: (props) => React.createElement(Image, props),
+  };
+});
+
+jest.mock('expo-screen-capture', () => ({
+  preventScreenCaptureAsync: jest.fn().mockResolvedValue(undefined),
+  allowScreenCaptureAsync: jest.fn().mockResolvedValue(undefined),
+}), { virtual: true });
+
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),

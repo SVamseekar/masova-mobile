@@ -20,6 +20,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '../../hooks/useTheme';
+import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Button, Card } from '../../components/ui';
 import { RootStackParamList } from '../../types';
@@ -42,6 +43,7 @@ const OrderReviewScreen: React.FC = () => {
   const route = useRoute<RouteProps>();
 
   const { orderId } = route.params;
+  const reviewsEnabled = isFeatureEnabled('ENABLE_REVIEWS');
 
   const [overallRating, setOverallRating] = useState(0);
   const [foodRating, setFoodRating] = useState(0);
@@ -129,6 +131,24 @@ const OrderReviewScreen: React.FC = () => {
       ]
     );
   };
+
+  if (!reviewsEnabled) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.bg, justifyContent: 'center', alignItems: 'center', padding: spacing[6] }]}>
+        <Ionicons name="star-outline" size={64} color={theme.colors.text3} />
+        <Text style={[styles.headerTitle, { color: theme.colors.text1, marginTop: spacing[4], textAlign: 'center' }]}>
+          Reviews temporarily unavailable
+        </Text>
+        <Button
+          title="Go Back"
+          onPress={() => navigation.goBack()}
+          variant="secondary"
+          size="md"
+          style={{ marginTop: spacing[4] }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>

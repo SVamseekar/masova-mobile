@@ -21,6 +21,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Button, Card } from '../../components/ui';
 import { RootStackParamList } from '../../types';
+import { useSecureScreen } from '../../services/screenSecurity';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'PaymentFailed'>;
@@ -59,6 +60,9 @@ const PaymentFailedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
+
+  // Block screenshots / recents preview on payment failure (order id + error text)
+  useSecureScreen(true);
 
   const { orderId, error } = route.params;
 
