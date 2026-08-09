@@ -81,13 +81,16 @@ const OrderTrackingScreen: React.FC = () => {
   const { orderId } = route.params;
 
   // Real-time order tracking with WebSocket
-  const { order, isLoading, wsConnected, wsState, error } = useOrderTracking({
+  const { order, deliveryTracking: wsDelivery, isLoading, wsConnected, wsState, error } = useOrderTracking({
     orderId,
     enableWebSocket: true,
   });
 
-  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryTracking | null>(null);
+  const [restDeliveryInfo, setRestDeliveryInfo] = useState<DeliveryTracking | null>(null);
   const [deliveryLoading, setDeliveryLoading] = useState(false);
+
+  // Combine WS live tracking with REST fallback
+  const deliveryInfo = wsDelivery || restDeliveryInfo;
 
   const currentStatus = order?.status || 'PENDING';
   const [eta, setEta] = useState(order?.preparationTime || 25);
@@ -103,14 +106,14 @@ const OrderTrackingScreen: React.FC = () => {
     ).start();
   }, [pulseAnim]);
 
-  // Fetch delivery tracking info when order is dispatched
+  // Fetch delivery tracking info via REST when order is dispatched as fallback
   useEffect(() => {
     const fetchDeliveryInfo = async () => {
-      if (order?.status === 'DISPATCHED' || order?.status === 'DELIVERED') {
+      if ((order?.status === 'DISPATCHED' || order?.status === 'DELIVERED') && !wsDelivery) {
         setDeliveryLoading(true);
         try {
           const tracking = await deliveryApi.track(orderId);
-          setDeliveryInfo(tracking);
+          setRestDeliveryInfo(tracking);
         } catch (err) {
           console.log('Delivery info not available yet:', err);
         } finally {
@@ -119,7 +122,7 @@ const OrderTrackingScreen: React.FC = () => {
       }
     };
     fetchDeliveryInfo();
-  }, [order?.status, orderId]);
+  }, [order?.status, orderId, wsDelivery]);
 
   // Update ETA countdown
   useEffect(() => {
@@ -279,15 +282,30 @@ const OrderTrackingScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close order tracking"
+        >
           <Ionicons name="close" size={24} color={theme.colors.text1} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.orderNumber, { color: theme.colors.text2 }]}>
             Order #{order.orderNumber || orderId.slice(-8).toUpperCase()}
           </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: wsConnected ? '#22C55E' : '#9CA3AF' }} />
+            <Text style={{ fontSize: 10, color: theme.colors.text3, textTransform: 'uppercase' }}>
+              {wsConnected ? 'LIVE' : wsState === 'reconnecting' ? 'RECONNECTING' : 'POLLING'}
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.helpButton}>
+        <TouchableOpacity
+          style={styles.helpButton}
+          accessibilityRole="button"
+          accessibilityLabel="Get help with order"
+        >
           <Ionicons name="help-circle-outline" size={24} color={theme.colors.text1} />
         </TouchableOpacity>
       </View>
@@ -638,13 +656,13 @@ const OrderTrackingScreen: React.FC = () => {
             </View>
             <View style={[
               styles.paymentStatusBadge,
-              { backgroundColor: order.paymentStatus === 'SUCCESS' ? `${theme.colors.semantic.success}15` : `${theme.colors.semantic.warning}15` }
+              { backgroundColor: (order.paymentStatus === 'PAID' || order.paymentStatus === 'SUCCESS') ? `${theme.colors.semantic.success}15` : `${theme.colors.semantic.warning}15` }
             ]}>
               <Text style={[
                 styles.paymentStatusText,
-                { color: order.paymentStatus === 'SUCCESS' ? theme.colors.semantic.success : theme.colors.semantic.warning }
+                { color: (order.paymentStatus === 'PAID' || order.paymentStatus === 'SUCCESS') ? theme.colors.semantic.success : theme.colors.semantic.warning }
               ]}>
-                {order.paymentStatus === 'SUCCESS' ? 'Paid' : order.paymentStatus === 'PENDING' ? 'Pending' : order.paymentStatus}
+                {(order.paymentStatus === 'PAID' || order.paymentStatus === 'SUCCESS') ? 'Paid' : order.paymentStatus === 'PENDING' ? 'Pending' : order.paymentStatus}
               </Text>
             </View>
           </View>

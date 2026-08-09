@@ -3,7 +3,7 @@
  * Address selection, payment method, and order placement
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '../../hooks/useTheme';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Card, Badge } from '../../components/ui';
 import { RootStackParamList, DeliveryAddress, GuestInfo } from '../../types';
@@ -142,24 +143,49 @@ const CheckoutScreen: React.FC = () => {
   const actualTaxes = Math.round((subtotal + actualDeliveryFee) * 0.05);
   const actualTotal = subtotal + actualDeliveryFee + actualTaxes;
 
+  const { isOffline } = useNetworkStatus();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
   const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
 
   const handlePlaceOrder = async () => {
+    // Offline guard
+    if (isOffline) {
+      Alert.alert('Offline', 'You are currently offline. Please reconnect to the internet to place an order.');
+      return;
+    }
+
+    // Double-submit hard lock
+    if (submittingRef.current || createOrderMutation.isPending || isSubmitting) {
+      console.log('[CheckoutScreen] Duplicate place-order tap blocked');
+      return;
+    }
+
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
     // Validation
     if (items.length === 0) {
       Alert.alert('Empty Cart', 'Please add items to your cart before placing an order.');
+      submittingRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
     // Address is only required for delivery orders
     if (orderType === 'DELIVERY' && !selectedAddress) {
       Alert.alert('No Address', 'Please select a delivery address.');
+      submittingRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
     // Determine customer info from either authenticated user or guest info
     if (!isAuthenticated || !user) {
       Alert.alert('Sign In Required', 'Please sign in to place an order.');
+      submittingRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
@@ -175,6 +201,8 @@ const CheckoutScreen: React.FC = () => {
       };
     } catch (err) {
       Alert.alert('Profile Error', 'Could not load your customer profile. Please try again.');
+      submittingRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
@@ -192,6 +220,8 @@ const CheckoutScreen: React.FC = () => {
               'The selected delivery address is outside the delivery radius for this store. Please select Takeaway or choose a different address.',
               [{ text: 'OK' }]
             );
+            submittingRef.current = false;
+            setIsSubmitting(false);
             return;
           }
         } catch (zoneErr) {
@@ -260,6 +290,7 @@ const CheckoutScreen: React.FC = () => {
 
           if (paymentResult.success) {
             // Payment successful - navigate to success screen
+            clearCart();
             navigation.replace('PaymentSuccess', { orderId: order.id });
           }
         } catch (paymentError: any) {
@@ -268,17 +299,22 @@ const CheckoutScreen: React.FC = () => {
           const errorMessage = paymentError.message === 'Payment cancelled'
             ? 'Payment was cancelled. Your order is saved but not confirmed.'
             : 'Payment processing failed. Please try again or choose a different payment method.';
+          submittingRef.current = false;
+          setIsSubmitting(false);
           navigation.replace('PaymentFailed', {
             orderId: order.id,
             error: errorMessage,
           });
         }
       } else {
-        // Cash on delivery - no payment needed, go directly to success
+        // Cash on delivery - no payment needed, clear cart and go directly to success
+        clearCart();
         navigation.replace('PaymentSuccess', { orderId: order.id });
       }
     } catch (error: any) {
       console.error('Order creation failed:', error);
+      submittingRef.current = false;
+      setIsSubmitting(false);
       Alert.alert(
         'Order Failed',
         error.response?.data?.message || 'Failed to place order. Please try again.',
@@ -657,12 +693,14 @@ const CheckoutScreen: React.FC = () => {
           </Text>
         </View>
         <Button
-          title="Place Order"
+          title={isOffline ? "You're Offline" : "Place Order"}
           onPress={handlePlaceOrder}
           size="lg"
-          loading={createOrderMutation.isPending}
-          disabled={items.length === 0 || createOrderMutation.isPending}
+          loading={createOrderMutation.isPending || isSubmitting}
+          disabled={items.length === 0 || createOrderMutation.isPending || isSubmitting || isOffline}
           style={styles.placeOrderButton}
+          accessibilityLabel={isOffline ? "You are offline. Connect to internet to place order" : "Place Order"}
+          accessibilityRole="button"
         />
       </View>
     </View>

@@ -12,3 +12,5 @@ export { default as QuantitySelector } from './QuantitySelector';
 export { default as Skeleton } from './Skeleton';
 export { MaSoVaLogo } from './MaSoVaLogo';
 export { FloatingChatBubble } from './FloatingChatBubble';
+export { OfflineBanner } from './OfflineBanner';
+

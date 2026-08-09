@@ -7,14 +7,14 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storeApi } from '../services/api';
 import { Store } from '../types';
 import { useTheme } from '../hooks/useTheme';
-
-const SELECTED_STORE_KEY = '@masova_selected_store';
+import { useStoreContext } from '../contexts/StoreContext';
+import { useCart } from '../contexts/CartContext';
 
 interface StoreSelectorProps {
   onStoreChange?: (store: Store | null) => void;
@@ -22,7 +22,8 @@ interface StoreSelectorProps {
 
 export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) => {
   const { theme } = useTheme();
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const { selectedStore, setSelectedStore: setContextStore } = useStoreContext();
+  const { itemCount, clearCart } = useCart();
   const [stores, setStores] = useState<Store[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,30 +34,12 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
     return null;
   }
 
-  // Load selected store from storage
-  useEffect(() => {
-    loadSelectedStore();
-  }, []);
-
   // Fetch stores when modal opens
   useEffect(() => {
     if (isOpen && stores.length === 0) {
       fetchStores();
     }
   }, [isOpen]);
-
-  const loadSelectedStore = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem(SELECTED_STORE_KEY);
-      if (storedData) {
-        const store = JSON.parse(storedData);
-        setSelectedStore(store);
-        onStoreChange?.(store);
-      }
-    } catch (err) {
-      console.error('Failed to load selected store:', err);
-    }
-  };
 
   const fetchStores = async () => {
     setLoading(true);
@@ -72,15 +55,36 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
     }
   };
 
-  const handleStoreSelect = async (store: Store) => {
+  const performStoreSelect = async (store: Store) => {
     try {
-      await AsyncStorage.setItem(SELECTED_STORE_KEY, JSON.stringify(store));
-      setSelectedStore(store);
+      await setContextStore(store);
       onStoreChange?.(store);
       setIsOpen(false);
     } catch (err) {
       console.error('Failed to save selected store:', err);
     }
+  };
+
+  const handleStoreSelect = async (store: Store) => {
+    if (selectedStore && selectedStore.id !== store.id && itemCount > 0) {
+      Alert.alert(
+        'Switch Store?',
+        'Your cart contains items from your current store. Switching stores will clear your cart. Do you want to proceed?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Clear Cart & Switch',
+            style: 'destructive',
+            onPress: async () => {
+              clearCart();
+              await performStoreSelect(store);
+            },
+          },
+        ]
+      );
+      return;
+    }
+    await performStoreSelect(store);
   };
 
   const getStoreLocation = (store: Store) => {

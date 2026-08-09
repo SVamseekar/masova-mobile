@@ -20,6 +20,8 @@ interface ButtonProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   style?: ViewStyle;
+  accessibilityLabel?: string;
+  accessibilityRole?: 'button' | 'link' | 'tab' | 'none';
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -33,6 +35,8 @@ const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   style,
+  accessibilityLabel,
+  accessibilityRole = 'button',
 }) => {
   const { theme, isDark } = useTheme();
 
@@ -113,6 +117,9 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.8}
       disabled={disabled || loading}
       style={containerStyle}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       {loading ? (
         <ActivityIndicator color={variantStyles.text.color as string} size="small" />

@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOrder } from './useOrderQueries';
 import { websocketService, ConnectionState } from '../services/websocketService';
-import { Order } from '../types';
+import { Order, DeliveryTracking } from '../types';
 
 interface UseOrderTrackingOptions {
   orderId: string;
@@ -16,6 +16,7 @@ interface UseOrderTrackingOptions {
 
 interface UseOrderTrackingResult {
   order: Order | undefined;
+  deliveryTracking: DeliveryTracking | undefined;
   isLoading: boolean;
   error: Error | null;
   wsConnected: boolean;
@@ -25,7 +26,7 @@ interface UseOrderTrackingResult {
 
 /**
  * Hook for real-time order tracking
- * Uses WebSocket for instant updates + React Query for fallback polling
+ * Uses WebSocket for instant order + delivery updates + REST API polling fallback
  */
 export const useOrderTracking = ({
   orderId,
@@ -34,6 +35,7 @@ export const useOrderTracking = ({
 }: UseOrderTrackingOptions): UseOrderTrackingResult => {
   const [wsState, setWsState] = useState<ConnectionState>('disconnected');
   const [wsOrder, setWsOrder] = useState<Order | undefined>(undefined);
+  const [wsDelivery, setWsDelivery] = useState<DeliveryTracking | undefined>(undefined);
   const previousStatusRef = useRef<string | undefined>(undefined);
 
   // Fetch order using React Query (with polling as fallback)
@@ -62,11 +64,12 @@ export const useOrderTracking = ({
     }
   }, [apiOrder?.status, handleStatusChange]);
 
-  // Connect to WebSocket and subscribe to order updates
+  // Connect to WebSocket and subscribe to order & delivery updates
   useEffect(() => {
     if (!enableWebSocket || !orderId) return;
 
-    let unsubscribe: (() => void) | undefined;
+    let orderUnsub: (() => void) | undefined;
+    let deliveryUnsub: (() => void) | undefined;
     let connectionStateUnsubscribe: (() => void) | undefined;
 
     const setupWebSocket = async () => {
@@ -76,22 +79,26 @@ export const useOrderTracking = ({
 
         // Connect if not already connected
         if (websocketService.getConnectionState() === 'disconnected') {
-          await websocketService.connect();
-        }
-
-        // Only subscribe if connected
-        if (websocketService.getConnectionState() === 'connected') {
-          // Subscribe to order updates
-          unsubscribe = websocketService.subscribeToOrder(orderId, (updatedOrder) => {
-            console.log('[useOrderTracking] Order update received:', updatedOrder.status);
-            setWsOrder(updatedOrder);
-
-            // Track status change
-            if (updatedOrder.status) {
-              handleStatusChange(updatedOrder.status);
-            }
+          await websocketService.connect().catch((err) => {
+            console.log('[useOrderTracking] WebSocket connect fallback:', err?.message);
           });
         }
+
+        // Subscribe to order updates
+        orderUnsub = websocketService.subscribeToOrder(orderId, (updatedOrder) => {
+          console.log('[useOrderTracking] Order update received:', updatedOrder.status);
+          setWsOrder(updatedOrder);
+
+          if (updatedOrder.status) {
+            handleStatusChange(updatedOrder.status);
+          }
+        });
+
+        // Subscribe to delivery updates
+        deliveryUnsub = websocketService.subscribeToDelivery(orderId, (updatedDelivery) => {
+          console.log('[useOrderTracking] Delivery update received:', updatedDelivery.status);
+          setWsDelivery(updatedDelivery);
+        });
       } catch (error) {
         // WebSocket failed - REST API polling will be used as fallback
         console.log('[useOrderTracking] WebSocket unavailable, using REST polling');
@@ -102,17 +109,15 @@ export const useOrderTracking = ({
 
     // Cleanup on unmount
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      if (connectionStateUnsubscribe) {
-        connectionStateUnsubscribe();
-      }
+      if (orderUnsub) orderUnsub();
+      if (deliveryUnsub) deliveryUnsub();
+      if (connectionStateUnsubscribe) connectionStateUnsubscribe();
     };
   }, [orderId, enableWebSocket, handleStatusChange]);
 
   return {
     order,
+    deliveryTracking: wsDelivery,
     isLoading,
     error: error as Error | null,
     wsConnected: wsState === 'connected',
@@ -122,3 +127,4 @@ export const useOrderTracking = ({
 };
 
 export default useOrderTracking;
+

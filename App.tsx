@@ -25,12 +25,15 @@ const queryClient = new QueryClient({
 
 export const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
 
+import { OfflineBanner } from './src/components/ui';
+
 const AppContent: React.FC = () => {
   const { isDark } = useTheme();
 
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <OfflineBanner />
       <RootNavigator ref={navigationRef} />
     </>
   );
