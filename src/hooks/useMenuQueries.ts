@@ -20,6 +20,7 @@ export const useMenuItems = (params?: {
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'items', selectedStoreId, params],
     queryFn: () => menuApi.getMenu({ ...params, storeId: selectedStoreId || undefined }),
+    enabled: !!selectedStoreId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
@@ -45,6 +46,7 @@ export const useRecommendedItems = () => {
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'recommended', selectedStoreId],
     queryFn: () => menuApi.getRecommended(selectedStoreId || undefined),
+    enabled: !!selectedStoreId,
     staleTime: 1000 * 60 * 10,
   });
 };
@@ -58,7 +60,7 @@ export const useMenuSearch = (query: string) => {
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'search', selectedStoreId, query],
     queryFn: () => menuApi.searchMenu(query, selectedStoreId || undefined),
-    enabled: query.length > 2,
+    enabled: !!selectedStoreId && query.length > 2,
     staleTime: 1000 * 60 * 2,
   });
 };
@@ -72,7 +74,7 @@ export const useMenuByCategory = (category: string) => {
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'category', selectedStoreId, category],
     queryFn: () => menuApi.getMenu({ storeId: selectedStoreId || undefined, category }),
-    enabled: !!category,
+    enabled: !!selectedStoreId && !!category,
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -86,7 +88,7 @@ export const useMenuByCuisine = (cuisine: string) => {
   return useQuery<MenuItem[]>({
     queryKey: ['menu', 'cuisine', selectedStoreId, cuisine],
     queryFn: () => menuApi.getMenu({ storeId: selectedStoreId || undefined, cuisine }),
-    enabled: !!cuisine,
+    enabled: !!selectedStoreId && !!cuisine,
     staleTime: 1000 * 60 * 5,
   });
 };

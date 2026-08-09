@@ -1,9 +1,8 @@
 /**
- * Order History Screen
- * List of past orders
+ * Orders — food-app style list (active + past)
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,21 +16,41 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Badge, Button } from '../../components/ui';
+import { MenuDishImage } from '../../components/menu/MenuDishImage';
 import { RootStackParamList, Order } from '../../types';
 import GuestPromptView from '../../components/GuestPromptView';
-import { orderApi, customerApi } from '../../services/api';
+import { orderApi } from '../../services/api';
 import { getListPerfProps } from '../../utils/listPerf';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type FilterTab = 'all' | 'active' | 'past';
 
-// Helper to check if order is active (can be tracked)
 const isActiveOrder = (status: string) => {
   return !['DELIVERED', 'COMPLETED', 'SERVED', 'CANCELLED'].includes(status);
+};
+
+const statusLabel = (status: string) => {
+  const map: Record<string, string> = {
+    PENDING: 'Pending',
+    RECEIVED: 'Received',
+    PREPARING: 'Preparing',
+    OVEN: 'In kitchen',
+    BAKED: 'Ready',
+    READY: 'Ready',
+    DISPATCHED: 'On the way',
+    DELIVERED: 'Delivered',
+    COMPLETED: 'Completed',
+    SERVED: 'Served',
+    CANCELLED: 'Cancelled',
+  };
+  return map[status] || status;
 };
 
 const OrderHistoryScreen: React.FC = () => {
@@ -39,21 +58,21 @@ const OrderHistoryScreen: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { formatMoney, locale } = useStoreCurrency();
+  const formatPrice = formatMoney;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterTab>('all');
 
   const fetchOrders = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       setError(null);
-      const customer = await customerApi.getByUserId(user.id);
-      const customerId = customer.id;
-
-      const response = await orderApi.getCustomerOrders(customerId);
+      const response = await orderApi.getCustomerOrders(user.id);
       const rawOrders = Array.isArray(response) ? response : (response as any).content || [];
       const sortedOrders = [...rawOrders].sort(
         (a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -68,7 +87,6 @@ const OrderHistoryScreen: React.FC = () => {
     }
   }, [user?.id]);
 
-  // Fetch orders on mount and when screen gains focus
   useFocusEffect(
     useCallback(() => {
       if (isAuthenticated && user?.id) {
@@ -82,29 +100,33 @@ const OrderHistoryScreen: React.FC = () => {
     fetchOrders();
   };
 
-  // Show guest prompt if not authenticated
+  const filtered = useMemo(() => {
+    if (filter === 'active') return orders.filter((o) => isActiveOrder(o.status));
+    if (filter === 'past') return orders.filter((o) => !isActiveOrder(o.status));
+    return orders;
+  }, [orders, filter]);
+
   if (!isAuthenticated) {
     return (
       <GuestPromptView
-        screenName="Order History"
+        screenName="Orders"
         icon="receipt-outline"
-        description="Sign in to view your past orders and track your order history."
+        description="Sign in to view your past orders and track deliveries."
       />
     );
   }
-
-  // Backend stores prices in rupees (not paise), so no need to divide
-  const formatPrice = (price: number) => `₹${Math.round(price)}`;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
+    if (diffDays === 0) {
+      return `Today · ${date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
+    }
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const getStatusVariant = (status: string) => {
@@ -115,90 +137,177 @@ const OrderHistoryScreen: React.FC = () => {
         return 'success';
       case 'CANCELLED':
         return 'error';
+      case 'DISPATCHED':
+        return 'warning';
       default:
         return 'primary';
     }
   };
 
-  const renderOrder = ({ item }: { item: Partial<Order> }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => navigation.navigate('OrderDetail', { orderId: item.id! })}
-    >
-      <Card elevation="sm" style={styles.orderCard}>
-        <View style={styles.orderHeader}>
-          <View>
-            <Text style={[styles.orderNumber, { color: theme.colors.text1 }]}>
-              {item.orderNumber}
-            </Text>
-            <Text style={[styles.orderDate, { color: theme.colors.text2 }]}>
-              {formatDate(item.createdAt!)}
-            </Text>
+  const itemSummary = (order: Partial<Order>) => {
+    const items = order.items || [];
+    if (items.length === 0) return 'Order items';
+    const first = items
+      .slice(0, 2)
+      .map((i) => `${i.quantity}× ${i.name}`)
+      .join(', ');
+    if (items.length > 2) return `${first} +${items.length - 2} more`;
+    return first;
+  };
+
+  const thumbName = (order: Partial<Order>) => order.items?.[0]?.name;
+
+  const renderOrder = ({ item }: { item: Partial<Order> }) => {
+    const active = isActiveOrder(item.status || '');
+    return (
+      <TouchableOpacity
+        activeOpacity={0.92}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          navigation.navigate('OrderDetail', { orderId: item.id! });
+        }}
+      >
+        <Card
+          elevation="sm"
+          style={{
+            ...styles.orderCard,
+            borderColor: active ? 'rgba(255,208,0,0.5)' : theme.colors.border,
+            borderWidth: active ? 1.5 : StyleSheet.hairlineWidth,
+          }}
+        >
+          <View style={styles.cardTop}>
+            <MenuDishImage
+              name={thumbName(item)}
+              style={styles.thumb}
+              placeholderColor={theme.colors.surface2}
+              iconColor={theme.colors.text3}
+            />
+            <View style={styles.cardMain}>
+              <View style={styles.rowBetween}>
+                <Text style={[styles.orderNumber, { color: theme.colors.text1 }]} numberOfLines={1}>
+                  {item.orderNumber || `#${item.id?.slice(-6)}`}
+                </Text>
+                <Badge
+                  label={statusLabel(item.status || '')}
+                  variant={getStatusVariant(item.status!) as any}
+                  size="sm"
+                />
+              </View>
+              <Text style={[styles.orderDate, { color: theme.colors.text2 }]}>
+                {item.createdAt ? formatDate(item.createdAt) : ''}
+              </Text>
+              <Text style={[styles.itemText, { color: theme.colors.text2 }]} numberOfLines={2}>
+                {itemSummary(item)}
+              </Text>
+              <View style={styles.metaRow}>
+                <View style={styles.metaChip}>
+                  <Ionicons
+                    name={
+                      item.orderType === 'TAKEAWAY' || item.orderType === 'COLLECTION'
+                        ? 'bag-handle-outline'
+                        : 'bicycle-outline'
+                    }
+                    size={12}
+                    color={theme.colors.text3}
+                  />
+                  <Text style={[styles.metaChipText, { color: theme.colors.text3 }]}>
+                    {item.orderType === 'TAKEAWAY' || item.orderType === 'COLLECTION'
+                      ? 'Takeaway'
+                      : 'Delivery'}
+                  </Text>
+                </View>
+                <Text style={[styles.orderTotal, { color: theme.colors.text1 }]}>
+                  {formatPrice(item.total ?? 0)}
+                </Text>
+              </View>
+            </View>
           </View>
-          <Badge
-            label={item.status!}
-            variant={getStatusVariant(item.status!) as any}
-            size="sm"
-          />
-        </View>
 
-        <View style={[styles.orderDivider, { backgroundColor: theme.colors.border }]} />
-
-        <View style={styles.orderItems}>
-          {item.items?.slice(0, 2).map((orderItem, index) => (
-            <Text
-              key={index}
-              style={[styles.itemText, { color: theme.colors.text2 }]}
-              numberOfLines={1}
+          <View style={[styles.actions, { borderTopColor: theme.colors.border }]}>
+            {active ? (
+              <TouchableOpacity
+                style={styles.primaryAction}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  navigation.navigate('OrderTracking', { orderId: item.id! });
+                }}
+              >
+                <Ionicons name="navigate" size={16} color="#0F0F0F" />
+                <Text style={styles.primaryActionText}>Track order</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.secondaryAction, { borderColor: theme.colors.border }]}
+                onPress={() => navigation.navigate('OrderDetail', { orderId: item.id! })}
+              >
+                <Text style={[styles.secondaryActionText, { color: theme.colors.text1 }]}>
+                  View details
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.secondaryAction, { borderColor: theme.colors.border }]}
+              onPress={() => navigation.navigate('OrderDetail', { orderId: item.id! })}
             >
-              {orderItem.quantity}x {orderItem.name}
-            </Text>
-          ))}
-          {(item.items?.length || 0) > 2 && (
-            <Text style={[styles.moreItems, { color: theme.colors.text3 }]}>
-              +{(item.items?.length || 0) - 2} more items
-            </Text>
-          )}
-        </View>
+              <Ionicons name="receipt-outline" size={16} color={theme.colors.text2} />
+              <Text style={[styles.secondaryActionText, { color: theme.colors.text2 }]}>
+                Bill
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      </TouchableOpacity>
+    );
+  };
 
-        <View style={styles.orderFooter}>
-          <Text style={[styles.orderTotal, { color: theme.colors.text1 }]}>
-            {formatPrice(item.total!)}
-          </Text>
-          {isActiveOrder(item.status!) ? (
-            <Button
-              title="Track"
-              variant="primary"
-              size="sm"
-              onPress={() => navigation.navigate('OrderTracking', { orderId: item.id! })}
-            />
-          ) : item.status === 'DELIVERED' || item.status === 'COMPLETED' ? (
-            <Button
-              title="Reorder"
-              variant="secondary"
-              size="sm"
-              onPress={() => {}}
-            />
-          ) : null}
-        </View>
-      </Card>
-    </TouchableOpacity>
-  );
+  const tabs: { id: FilterTab; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'active', label: 'Active' },
+    { id: 'past', label: 'Past' },
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing[2] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text1} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.colors.text1 }]}>Order History</Text>
-        <View style={{ width: 40 }} />
+        <Text style={[styles.title, { color: theme.colors.text1 }]}>Orders</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.text3 }]}>
+          {orders.length} total
+        </Text>
+      </View>
+
+      <View style={styles.tabs}>
+        {tabs.map((t) => {
+          const selected = filter === t.id;
+          return (
+            <TouchableOpacity
+              key={t.id}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setFilter(t.id);
+              }}
+              style={[
+                styles.tab,
+                {
+                  backgroundColor: selected ? '#FFD000' : theme.colors.surface2,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: selected ? '#0F0F0F' : theme.colors.text2 },
+                ]}
+              >
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={'#FFD000'} />
+          <ActivityIndicator size="large" color="#FFD000" />
           <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
             Loading orders...
           </Text>
@@ -209,14 +318,12 @@ const OrderHistoryScreen: React.FC = () => {
           <Text style={[styles.errorTitle, { color: theme.colors.text1 }]}>
             Failed to load orders
           </Text>
-          <Text style={[styles.errorSubtitle, { color: theme.colors.text2 }]}>
-            {error}
-          </Text>
+          <Text style={[styles.errorSubtitle, { color: theme.colors.text2 }]}>{error}</Text>
           <Button title="Retry" variant="secondary" size="sm" onPress={fetchOrders} />
         </View>
       ) : (
         <FlatList
-          data={orders}
+          data={filtered}
           renderItem={renderOrder}
           keyExtractor={(item) => item.id!}
           contentContainerStyle={styles.listContent}
@@ -227,18 +334,27 @@ const OrderHistoryScreen: React.FC = () => {
               refreshing={refreshing}
               onRefresh={handleRefresh}
               colors={['#FFD000']}
-              tintColor={'#FFD000'}
+              tintColor="#FFD000"
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="receipt-outline" size={64} color={theme.colors.text3} />
               <Text style={[styles.emptyTitle, { color: theme.colors.text1 }]}>
-                No orders yet
+                {filter === 'active' ? 'No active orders' : 'No orders yet'}
               </Text>
               <Text style={[styles.emptySubtitle, { color: theme.colors.text2 }]}>
-                Your order history will appear here
+                {filter === 'active'
+                  ? 'When you place an order, track it here'
+                  : 'Your delicious history will show up here'}
               </Text>
+              <Button
+                title="Browse menu"
+                variant="primary"
+                size="sm"
+                onPress={() => navigation.navigate('Main', { screen: 'Search' })}
+                style={{ marginTop: spacing[4] }}
+              />
             </View>
           }
         />
@@ -248,86 +364,144 @@ const OrderHistoryScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: spacing.screenPadding,
-    paddingBottom: spacing[3],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    paddingBottom: spacing[2],
   },
   title: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.bold,
+    fontSize: typography.fontSize.headline,
     fontFamily: 'PlusJakartaSans-Bold',
+  },
+  subtitle: {
+    fontSize: typography.fontSize.caption,
+    marginTop: 2,
+  },
+  tabs: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.screenPadding,
+    gap: spacing[2],
+    marginBottom: spacing[3],
+  },
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  tabText: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans-SemiBold',
   },
   listContent: {
     padding: spacing.screenPadding,
+    paddingTop: 0,
     gap: spacing[3],
+    paddingBottom: spacing[10],
   },
   orderCard: {
-    marginBottom: spacing[2],
+    marginBottom: spacing[1],
+    overflow: 'hidden',
   },
-  orderHeader: {
+  cardTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    gap: spacing[3],
   },
-  orderNumber: {
-    fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.semibold,
+  thumb: {
+    width: 72,
+    height: 72,
+    borderRadius: borderRadius.md,
   },
-  orderDate: {
-    fontSize: typography.fontSize.caption,
-    marginTop: spacing[1],
-  },
-  orderDivider: {
-    height: 1,
-    marginVertical: spacing[3],
-  },
-  orderItems: {
-    gap: spacing[1],
-  },
-  itemText: {
-    fontSize: typography.fontSize.bodySm,
-  },
-  moreItems: {
-    fontSize: typography.fontSize.caption,
-    marginTop: spacing[1],
-  },
-  orderFooter: {
+  cardMain: { flex: 1 },
+  rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing[4],
+    gap: spacing[2],
+  },
+  orderNumber: {
+    flex: 1,
+    fontSize: typography.fontSize.body,
+    fontFamily: 'PlusJakartaSans-SemiBold',
+  },
+  orderDate: {
+    fontSize: typography.fontSize.caption,
+    marginTop: 2,
+  },
+  itemText: {
+    fontSize: typography.fontSize.bodySm,
+    marginTop: spacing[1],
+    lineHeight: 18,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing[2],
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaChipText: {
+    fontSize: 11,
+    fontFamily: 'PlusJakartaSans-Medium',
   },
   orderTotal: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.bold,
+    fontSize: typography.fontSize.body,
     fontFamily: 'PlusJakartaSans-Bold',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  primaryAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FFD000',
+    paddingVertical: 10,
+    borderRadius: borderRadius.md,
+  },
+  primaryActionText: {
+    fontFamily: 'PlusJakartaSans-Bold',
+    color: '#0F0F0F',
+    fontSize: 13,
+  },
+  secondaryAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: borderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  secondaryActionText: {
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontSize: 13,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: spacing[20],
+    paddingTop: spacing[16],
+    paddingHorizontal: spacing[4],
   },
   emptyTitle: {
     fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
     fontFamily: 'PlusJakartaSans-SemiBold',
     marginTop: spacing[4],
   },
   emptySubtitle: {
     fontSize: typography.fontSize.body,
     marginTop: spacing[2],
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -347,7 +521,6 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
     fontFamily: 'PlusJakartaSans-SemiBold',
     marginTop: spacing[2],
   },

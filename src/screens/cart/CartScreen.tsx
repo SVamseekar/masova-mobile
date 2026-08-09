@@ -11,8 +11,8 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -21,63 +21,13 @@ import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '../../hooks/useTheme';
 import { useCart } from '../../contexts/CartContext';
+import { useStoreCurrency } from '../../hooks/useStoreCurrency';
+import { useSelectedStore } from '../../hooks/useSelectedStore';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Card, QuantitySelector, FloatingChatBubble } from '../../components/ui';
+import { MenuDishImage } from '../../components/menu/MenuDishImage';
 import { RootStackParamList } from '../../types';
-
-// Mock cart data
-const MOCK_CART_ITEMS: any[] = [
-  {
-    id: '1',
-    menuItem: {
-      id: '1',
-      name: 'Margherita Pizza',
-      description: 'Classic Italian pizza',
-      cuisine: 'ITALIAN',
-      category: 'PIZZA',
-      basePrice: 34900,
-      discountedPrice: 29900,
-      variants: [],
-      customizations: [],
-      dietaryInfo: ['VEGETARIAN'],
-      imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=200',
-      isAvailable: true,
-      preparationTime: 25,
-      isRecommended: true,
-    },
-    quantity: 2,
-    selectedVariant: { id: 'v2', name: 'Large (12")', priceModifier: 10000 },
-    selectedCustomizations: [
-      {
-        customizationId: 'c1',
-        customizationName: 'Extra Toppings',
-        selectedOptions: [{ id: 'o1', name: 'Extra Cheese', priceModifier: 5000 }],
-      },
-    ],
-    totalPrice: 89800, // (29900 + 10000 + 5000) * 2
-  },
-  {
-    id: '2',
-    menuItem: {
-      id: '3',
-      name: 'Garlic Bread',
-      description: 'Crispy garlic bread with herbs',
-      cuisine: 'ITALIAN',
-      category: 'APPETIZER',
-      basePrice: 14900,
-      variants: [],
-      customizations: [],
-      dietaryInfo: ['VEGETARIAN'],
-      imageUrl: 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?w=200',
-      isAvailable: true,
-      preparationTime: 10,
-      isRecommended: false,
-    },
-    quantity: 1,
-    selectedCustomizations: [],
-    totalPrice: 14900,
-  },
-];
+import { taxLabel } from '../../utils/pricing';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -85,6 +35,9 @@ const CartScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { formatMoney } = useStoreCurrency();
+  const { selectedStore } = useSelectedStore();
+  const taxesLabel = taxLabel(selectedStore?.countryCode || 'DE', 'DELIVERY');
 
   // Use real cart context
   const {
@@ -101,7 +54,7 @@ const CartScreen: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
 
-  const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
+  const formatPrice = formatMoney;
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -115,14 +68,27 @@ const CartScreen: React.FC = () => {
 
   const handleApplyCoupon = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (couponCode.toUpperCase() === 'WELCOME50') {
-      const discount = Math.min(subtotal * 0.5, 20000); // 50% up to ₹200
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      Alert.alert('Coupon', 'Enter a coupon code first.');
+      return;
+    }
+    // Client-side demo codes until a public coupon API exists on the gateway
+    // Caps in minor units (e.g. 2000 = €20.00 when using cents)
+    if (code === 'WELCOME50') {
+      const discount = Math.min(subtotal * 0.5, 2000);
       setCouponDiscount(discount);
-      setAppliedCoupon(couponCode.toUpperCase());
+      setAppliedCoupon(code);
+      Alert.alert('Coupon applied', `WELCOME50 — 50% off (max ${formatMoney(2000)}).`);
+    } else if (code === 'SAVE10') {
+      const discount = Math.min(Math.round(subtotal * 0.1), 1000);
+      setCouponDiscount(discount);
+      setAppliedCoupon(code);
+      Alert.alert('Coupon applied', 'SAVE10 — 10% off.');
     } else {
       setCouponDiscount(0);
       setAppliedCoupon(null);
-      // Show error
+      Alert.alert('Invalid coupon', 'That code is not valid. Try WELCOME50 or SAVE10.');
     }
   };
 
@@ -136,12 +102,10 @@ const CartScreen: React.FC = () => {
   const renderCartItem = (item: any) => (
     <Card key={item.id} elevation="sm" style={styles.cartItem}>
       <View style={styles.itemRow}>
-        <Image
-          source={{ uri: item.menuItem.imageUrl }}
+        <MenuDishImage
+          name={item.menuItem?.name}
+          imageUrl={item.menuItem?.imageUrl}
           style={styles.itemImage}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          recyclingKey={item.id}
         />
         <View style={styles.itemDetails}>
           <View style={styles.itemHeader}>
@@ -309,7 +273,7 @@ const CartScreen: React.FC = () => {
             </View>
             <View style={styles.billRow}>
               <Text style={[styles.billLabel, { color: theme.colors.text2 }]}>
-                Taxes & Charges
+                {taxesLabel}
               </Text>
               <Text style={[styles.billValue, { color: theme.colors.text1 }]}>
                 {formatPrice(taxes)}
@@ -337,19 +301,20 @@ const CartScreen: React.FC = () => {
           </Card>
         </View>
 
-        {/* Spacer - account for checkout bar + tab bar */}
-        <View style={{ height: 180 }} />
+        {/* Spacer for sticky checkout bar */}
+        <View style={{ height: 100 + insets.bottom }} />
       </ScrollView>
 
-      <FloatingChatBubble bottomOffset={130} />
+      <FloatingChatBubble bottomOffset={100 + insets.bottom} />
 
-      {/* Checkout Bar - positioned above tab bar */}
+      {/* Sticky checkout bar (stack modal — no tab bar offset) */}
       <View
         style={[
           styles.checkoutBar,
           {
             backgroundColor: theme.colors.surface1,
-            bottom: 60 + insets.bottom, // Account for tab bar height (60) + safe area
+            bottom: 0,
+            paddingBottom: Math.max(insets.bottom, spacing[3]),
             borderTopColor: theme.colors.border,
           },
         ]}

@@ -16,6 +16,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useStoreContext } from '../contexts/StoreContext';
 import { useCart } from '../contexts/CartContext';
 import { isFeatureEnabled } from '../config/featureFlags';
+import { formatPrice } from '../utils/money';
 
 interface StoreSelectorProps {
   onStoreChange?: (store: Store | null) => void;
@@ -31,7 +32,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
   const [error, setError] = useState<string | null>(null);
 
   // Safety check - if theme is not loaded yet, return null
-  if (!theme || !theme.colors || !theme.colors.brand) {
+  if (!theme?.colors) {
     return null;
   }
 
@@ -71,7 +72,7 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
     if (
       strictGuard &&
       selectedStore &&
-      selectedStore.id !== store.id &&
+      (selectedStore.storeCode || selectedStore.id) !== (store.storeCode || store.id) &&
       itemCount > 0
     ) {
       Alert.alert(
@@ -92,7 +93,11 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
       return;
     }
     // When guard is off, still clear cart on store change so prices/items stay store-scoped
-    if (selectedStore && selectedStore.id !== store.id && itemCount > 0) {
+    if (
+      selectedStore &&
+      (selectedStore.storeCode || selectedStore.id) !== (store.storeCode || store.id) &&
+      itemCount > 0
+    ) {
       clearCart();
     }
     await performStoreSelect(store);
@@ -195,7 +200,9 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
                 </View>
               ) : (
                 stores.map((store) => {
-                  const isSelected = selectedStore?.id === store.id;
+                  const storeKey = store.storeCode || store.id;
+                  const selectedKey = selectedStore?.storeCode || selectedStore?.id;
+                  const isSelected = !!storeKey && storeKey === selectedKey;
                   return (
                     <TouchableOpacity
                       key={store.id}
@@ -301,7 +308,11 @@ export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) =
                             <Text
                               style={[styles.infoText, { color: theme.colors.text3 }]}
                             >
-                              ₹{store.deliveryFee} delivery
+                              {formatPrice(
+                                store.deliveryFee,
+                                store.currency || selectedStore?.currency
+                              )}{' '}
+                              delivery
                             </Text>
                           </View>
                         </View>

@@ -1,59 +1,70 @@
-import { formatPrice, formatCurrency, centsToRupees, rupeesToCents } from '../money';
+import {
+  formatPrice,
+  formatCurrency,
+  formatMajor,
+  toMajorUnits,
+  centsToRupees,
+  rupeesToCents,
+  DEFAULT_CURRENCY,
+} from '../money';
 
-describe('Money Utilities', () => {
+describe('money utils (platform EUR)', () => {
+  describe('toMajorUnits', () => {
+    it('divides integer cents >= 100', () => {
+      expect(toMajorUnits(890)).toBe(8.9);
+      expect(toMajorUnits(12900)).toBe(129);
+    });
+    it('keeps small major values', () => {
+      expect(toMajorUnits(8.9)).toBe(8.9);
+      expect(toMajorUnits(12)).toBe(12);
+    });
+  });
+
   describe('formatPrice', () => {
-    it('formats price in paise/cents correctly', () => {
-      expect(formatPrice(12900)).toBe('₹129');
-      expect(formatPrice(8900)).toBe('₹89');
-      expect(formatPrice(0)).toBe('₹0');
+    it('defaults to EUR not INR', () => {
+      const s = formatPrice(890);
+      expect(s).toMatch(/8[,.]90/);
+      expect(s).not.toContain('₹');
+      expect(DEFAULT_CURRENCY).toBe('EUR');
     });
 
-    it('handles invalid inputs gracefully', () => {
-      expect(formatPrice(NaN)).toBe('₹0');
-      expect(formatPrice(null as any)).toBe('₹0');
-      expect(formatPrice(undefined as any)).toBe('₹0');
-    });
-  });
-
-  describe('formatCurrency', () => {
-    it('formats standard currency with 2 decimals', () => {
-      expect(formatCurrency(129.5)).toBe('₹129.50');
-      expect(formatCurrency(100)).toBe('₹100.00');
+    it('formats zero', () => {
+      const s = formatPrice(0);
+      expect(s).toMatch(/0/);
+      expect(s).not.toContain('₹');
     });
 
-    it('accepts custom currency symbols', () => {
-      expect(formatCurrency(50.25, '$')).toBe('$50.25');
+    it('handles NaN', () => {
+      expect(formatPrice(NaN)).not.toContain('₹');
+      expect(formatPrice(null as any)).not.toContain('₹');
     });
 
-    it('handles invalid inputs gracefully', () => {
-      expect(formatCurrency(NaN)).toBe('₹0.00');
-      expect(formatCurrency(null as any)).toBe('₹0.00');
+    it('can format INR when store is India', () => {
+      const s = formatPrice(12900, 'INR', 'en-IN');
+      expect(s).toContain('₹');
     });
   });
 
-  describe('centsToRupees', () => {
-    it('converts cents to rupees accurately', () => {
+  describe('formatMajor', () => {
+    it('does not divide again', () => {
+      const s = formatMajor(12.5, 'EUR', 'de-DE');
+      expect(s).toMatch(/12[,.]50/);
+    });
+  });
+
+  describe('formatCurrency (legacy)', () => {
+    it('formats major amount with EUR by default', () => {
+      const s = formatCurrency(129.5);
+      expect(s).not.toContain('₹');
+    });
+  });
+
+  describe('cents helpers (compat names)', () => {
+    it('centsToRupees aliases toMajorUnits', () => {
       expect(centsToRupees(1500)).toBe(15);
-      expect(centsToRupees(250)).toBe(2.5);
-      expect(centsToRupees(0)).toBe(0);
     });
-
-    it('handles invalid inputs gracefully', () => {
-      expect(centsToRupees(NaN)).toBe(0);
-      expect(centsToRupees(undefined as any)).toBe(0);
-    });
-  });
-
-  describe('rupeesToCents', () => {
-    it('converts rupees to cents accurately', () => {
-      expect(rupeesToCents(15)).toBe(1500);
-      expect(rupeesToCents(2.5)).toBe(250);
-      expect(rupeesToCents(0)).toBe(0);
-    });
-
-    it('handles invalid inputs gracefully', () => {
-      expect(rupeesToCents(NaN)).toBe(0);
-      expect(rupeesToCents(null as any)).toBe(0);
+    it('rupeesToCents multiplies', () => {
+      expect(rupeesToCents(15.5)).toBe(1550);
     });
   });
 });

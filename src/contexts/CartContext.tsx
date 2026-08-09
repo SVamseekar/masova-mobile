@@ -6,6 +6,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MenuItem, MenuVariant, CustomizationOption } from '../types';
+import { calculateDeliveryFeeMinor, calculateTaxMinor } from '../utils/pricing';
 
 const CART_STORAGE_KEY = 'masova_cart';
 
@@ -224,12 +225,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Delivery fee logic (free above certain amount, otherwise fixed fee)
   // Note: Delivery fee is calculated here but NOT included in cart total
   // It's only added on checkout screen when user selects DELIVERY order type
-  const deliveryFee = subtotal >= 50000 ? 0 : 4000; // Free delivery above ₹500
+  // Platform-aligned EUR demo: DE takeaway/delivery food VAT 7%; free delivery ≥ €25
+  const deliveryFee = calculateDeliveryFeeMinor(subtotal);
+  const taxes = calculateTaxMinor(subtotal, 'DE', 'DELIVERY');
 
-  // Tax calculation (5% GST) - only on subtotal, delivery fee tax added at checkout if applicable
-  const taxes = Math.round(subtotal * 0.05);
-
-  // Cart total excludes delivery fee - it's added at checkout based on order type
+  // Cart total excludes delivery fee — added at checkout based on order type
   const total = subtotal + taxes;
 
   const value: CartContextType = {

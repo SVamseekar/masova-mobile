@@ -539,10 +539,24 @@ export interface GuestInfo {
 // NAVIGATION TYPES
 // =============================================================================
 
+export type MainTabParamList = {
+  Home: undefined;
+  Search: { category?: string; query?: string } | undefined;
+  Orders: undefined;
+  Saved: undefined;
+  Account: undefined;
+};
+
 export type RootStackParamList = {
-  Main: undefined;
+  Main:
+    | {
+        screen?: keyof MainTabParamList;
+        params?: MainTabParamList[keyof MainTabParamList];
+      }
+    | undefined;
   Auth: undefined;
   ItemDetail: { itemId: string };
+  Cart: undefined;
   CheckoutOptions: undefined;
   GuestCheckout: { returnFromAuth?: boolean };
   Checkout: { guestInfo?: GuestInfo };
@@ -561,14 +575,6 @@ export type RootStackParamList = {
   NotificationSettings: undefined;
   LoyaltyHistory: undefined;
   ChangePassword: undefined;
-};
-
-export type MainTabParamList = {
-  Home: undefined;
-  Search: undefined;
-  Orders: undefined;
-  Saved: undefined;
-  Account: undefined;
 };
 
 export type AuthStackParamList = {

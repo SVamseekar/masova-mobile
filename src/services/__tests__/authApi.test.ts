@@ -1,6 +1,7 @@
 import httpClient, { setClientUserContext } from '../http/client';
-import { setTokens, clearTokens } from '../secureTokenStorage';
+import { setTokens, clearTokens, getAccessToken } from '../secureTokenStorage';
 import { authApi } from '../api/authApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 jest.mock('../http/client', () => ({
   __esModule: true,
@@ -22,6 +23,13 @@ jest.mock('../http/client', () => ({
 jest.mock('../secureTokenStorage', () => ({
   setTokens: jest.fn().mockResolvedValue(undefined),
   clearTokens: jest.fn().mockResolvedValue(undefined),
+  getAccessToken: jest.fn().mockResolvedValue('acc_token'),
+}));
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn().mockResolvedValue(undefined),
+  getItem: jest.fn().mockResolvedValue(null),
+  removeItem: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('authApi Service', () => {
@@ -90,6 +98,7 @@ describe('authApi Service', () => {
         email: 'new@example.com',
         password: 'pass',
         phone: '9999999999',
+        type: 'CUSTOMER',
         role: 'CUSTOMER',
       });
       expect(setTokens).toHaveBeenCalledWith('acc_reg', 'ref_reg');
@@ -130,15 +139,16 @@ describe('authApi Service', () => {
   });
 
   describe('getCurrentUser', () => {
-    it('fetches current user and sets context', async () => {
-      const mockUser = { id: 'user_curr', email: 'curr@example.com', name: 'Current User' };
-      (httpClient.get as jest.Mock).mockResolvedValue({ data: mockUser });
+    it('restores user from AsyncStorage and sets context (no /auth/me)', async () => {
+      const mockUser = { id: 'user_curr', email: 'curr@example.com', name: 'Current User', role: 'CUSTOMER' };
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockUser));
+      (getAccessToken as jest.Mock).mockResolvedValue(null);
 
       const user = await authApi.getCurrentUser();
 
-      expect(httpClient.get).toHaveBeenCalledWith('/auth/me');
+      expect(httpClient.get).not.toHaveBeenCalledWith('/auth/me');
       expect(setClientUserContext).toHaveBeenCalledWith('user_curr');
-      expect(user).toEqual(mockUser);
+      expect(user?.id).toBe('user_curr');
     });
   });
 
@@ -163,14 +173,19 @@ describe('authApi Service', () => {
   });
 
   describe('isAuthenticated', () => {
-    it('returns true if user has valid id', async () => {
-      (httpClient.get as jest.Mock).mockResolvedValue({ data: { id: 'user_123' } });
+    it('returns true if token + stored user id exist', async () => {
+      (getAccessToken as jest.Mock).mockResolvedValue('acc_token');
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify({ id: 'user_123', email: 'a@b.com', name: 'A', role: 'CUSTOMER' })
+      );
+      (httpClient.get as jest.Mock).mockRejectedValue(new Error('offline'));
       const authState = await authApi.isAuthenticated();
       expect(authState).toBe(true);
     });
 
-    it('returns false if getCurrentUser throws error', async () => {
-      (httpClient.get as jest.Mock).mockRejectedValue(new Error('401 Unauthorized'));
+    it('returns false if no access token', async () => {
+      (getAccessToken as jest.Mock).mockResolvedValue(null);
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
       const authState = await authApi.isAuthenticated();
       expect(authState).toBe(false);
     });

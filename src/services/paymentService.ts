@@ -115,7 +115,7 @@ export const processPayment = async (params: {
     const razorpayOptions: RazorpayOptions = {
       key: initResponse.razorpayKeyId || '',
       amount: initResponse.amount,
-      currency: initResponse.currency || 'INR',
+      currency: initResponse.currency || 'EUR',
       name: 'MaSoVa',
       description: `Order #${params.orderId}`,
       order_id: initResponse.razorpayOrderId || '',

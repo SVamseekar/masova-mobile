@@ -1,5 +1,6 @@
 import httpClient from '../http/client';
 import { Customer, CustomerPreferences } from '../../types';
+import { normalizeLoyaltyInfo, normalizeOrderStats } from '../../utils/loyaltyProgram';
 
 export interface AddAddressRequest {
   label: string;
@@ -22,18 +23,93 @@ export interface AddAddressRequest {
   isDefault?: boolean;
 }
 
+function mapCustomer(raw: any): Customer {
+  if (!raw) {
+    throw new Error('Empty customer payload');
+  }
+  // Platform nests loyalty under loyaltyInfo; some DTOs flatten fields
+  const loyaltySource =
+    raw.loyaltyInfo ||
+    raw.loyalty_info ||
+    raw.loyalty ||
+    (raw.totalPoints != null || raw.points != null
+      ? {
+          totalPoints: raw.totalPoints ?? raw.points,
+          pointsEarned: raw.pointsEarned,
+          pointsRedeemed: raw.pointsRedeemed,
+          tier: raw.tier || raw.loyaltyTier,
+          pointHistory: raw.pointHistory,
+        }
+      : null);
+
+  const loyalty =
+    normalizeLoyaltyInfo(loyaltySource) ||
+    normalizeLoyaltyInfo({ totalPoints: 0, tier: 'BRONZE' });
+  const orderStats =
+    normalizeOrderStats(raw.orderStats || raw.order_stats) ||
+    normalizeOrderStats({
+      totalOrders: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+    });
+
+  return {
+    ...raw,
+    id: raw.id || raw._id || '',
+    userId: raw.userId || raw.user_id || '',
+    name: raw.name || '',
+    email: raw.email || '',
+    phone: raw.phone,
+    profilePicture: raw.profilePicture || raw.profile_picture,
+    addresses: Array.isArray(raw.addresses) ? raw.addresses : [],
+    loyaltyInfo: loyalty,
+    orderStats,
+    isActive: raw.isActive ?? raw.active ?? true,
+    preferences: raw.preferences,
+  };
+}
+
 export const customerApi = {
-  getByUserId: async (userId: string): Promise<Customer> => {
-    const response = await httpClient.get<Customer[]>(`/customers?userId=${encodeURIComponent(userId)}`);
-    if (!response.data || !response.data.length) {
+  /**
+   * Resolve customer by JWT user id (platform: GET /customers?userId=).
+   * Optional email fallback when userId is missing on the customer row.
+   */
+  getByUserId: async (userId: string, email?: string): Promise<Customer> => {
+    const response = await httpClient.get<any>(
+      `/customers?userId=${encodeURIComponent(userId)}`
+    );
+    let list = Array.isArray(response.data)
+      ? response.data
+      : Array.isArray(response.data?.content)
+        ? response.data.content
+        : response.data
+          ? [response.data]
+          : [];
+
+    if (!list.length && email) {
+      const byEmail = await httpClient.get<any>(
+        `/customers?email=${encodeURIComponent(email)}`
+      );
+      list = Array.isArray(byEmail.data)
+        ? byEmail.data
+        : byEmail.data
+          ? [byEmail.data]
+          : [];
+    }
+
+    if (!list.length) {
       throw new Error(`Customer profile not found for user ${userId}`);
     }
-    return response.data[0];
+    const match =
+      list.find(
+        (c: any) => (c.userId || c.user_id) === userId || c.id === userId
+      ) || list[0];
+    return mapCustomer(match);
   },
 
   getById: async (id: string): Promise<Customer> => {
-    const response = await httpClient.get<Customer>(`/customers/${id}`);
-    return response.data;
+    const response = await httpClient.get<any>(`/customers/${id}`);
+    return mapCustomer(response.data);
   },
 
   getOrCreate: async (userData: { userId: string; name: string; email: string; phone?: string }): Promise<Customer> => {

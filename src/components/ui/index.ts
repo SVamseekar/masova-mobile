@@ -13,4 +13,6 @@ export { default as Skeleton } from './Skeleton';
 export { MaSoVaLogo } from './MaSoVaLogo';
 export { FloatingChatBubble } from './FloatingChatBubble';
 export { OfflineBanner } from './OfflineBanner';
+export { FadeInUp } from './FadeInUp';
+export { AnimatedPressable } from './AnimatedPressable';
 

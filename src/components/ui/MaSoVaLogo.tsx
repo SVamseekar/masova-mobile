@@ -1,62 +1,52 @@
+/**
+ * MaSoVa brand mark — aligned with platform gold wordmark.
+ * Uses bundled brand assets when available; falls back to vector mark + text.
+ */
+
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, ImageStyle, ViewStyle } from 'react-native';
 
 interface MaSoVaLogoProps {
   size?: 'sm' | 'md' | 'lg';
   textColor?: string;
   markOnly?: boolean;
+  /** Prefer platform-style image wordmark */
+  variant?: 'wordmark' | 'mark' | 'auto';
 }
 
 const SIZES = {
-  sm: { markHeight: 16, fontSize: 18, gap: 6 },
-  md: { markHeight: 22, fontSize: 24, gap: 8 },
-  lg: { markHeight: 32, fontSize: 34, gap: 10 },
-};
-
-const SteamBowlMark: React.FC<{ height: number }> = ({ height }) => {
-  const arcWidths = [height * 1.2, height * 0.9, height * 0.6];
-  const arcOpacities = [1, 0.6, 0.3];
-  const strokeWidth = Math.max(2, height * 0.1);
-  const arcSpacing = height * 0.18;
-
-  return (
-    <View style={{ height, justifyContent: 'flex-end', alignItems: 'center' }}>
-      {arcWidths.map((width, i) => (
-        <View
-          key={i}
-          style={{
-            width,
-            height: width * 0.5,
-            borderTopLeftRadius: width * 0.5,
-            borderTopRightRadius: width * 0.5,
-            borderTopWidth: strokeWidth,
-            borderLeftWidth: strokeWidth,
-            borderRightWidth: strokeWidth,
-            borderColor: `rgba(255, 208, 0, ${arcOpacities[i]})`,
-            marginBottom: i < arcWidths.length - 1 ? arcSpacing : 0,
-            backgroundColor: 'transparent',
-          }}
-        />
-      ))}
-    </View>
-  );
+  sm: { mark: 22, fontSize: 18, gap: 6 },
+  md: { mark: 28, fontSize: 24, gap: 8 },
+  lg: { mark: 40, fontSize: 34, gap: 10 },
 };
 
 export const MaSoVaLogo: React.FC<MaSoVaLogoProps> = ({
   size = 'md',
   textColor = '#FFFFFF',
   markOnly = false,
+  variant = 'auto',
 }) => {
-  const { markHeight, fontSize, gap } = SIZES[size];
+  const { mark, fontSize, gap } = SIZES[size];
 
-  if (markOnly) {
-    return <SteamBowlMark height={markHeight} />;
+  if (markOnly || variant === 'mark') {
+    return (
+      <Image
+        source={require('../../../assets/brand/app-icon.png')}
+        style={{ width: mark + 6, height: mark + 6, borderRadius: 8 } as ImageStyle}
+        resizeMode="cover"
+      />
+    );
   }
 
+  // Full wordmark: icon + platform-style MaSoVa text (gold So)
   return (
-    <View style={[styles.container, { gap }]}>
-      <SteamBowlMark height={markHeight} />
-      <Text style={[styles.wordmark, { fontSize, color: textColor, letterSpacing: -0.5 }]}>
+    <View style={[styles.container, { gap } as ViewStyle]}>
+      <Image
+        source={require('../../../assets/brand/app-icon.png')}
+        style={{ width: mark, height: mark, borderRadius: 7 } as ImageStyle}
+        resizeMode="cover"
+      />
+      <Text style={[styles.wordmark, { fontSize, color: textColor, letterSpacing: -0.6 }]}>
         <Text style={{ color: textColor }}>Ma</Text>
         <Text style={{ color: '#FFD000' }}>So</Text>
         <Text style={{ color: textColor }}>Va</Text>
@@ -64,6 +54,15 @@ export const MaSoVaLogo: React.FC<MaSoVaLogoProps> = ({
     </View>
   );
 };
+
+/** Icon-only for launcher-adjacent UI */
+export const MaSoVaAppIcon: React.FC<{ size?: number }> = ({ size = 40 }) => (
+  <Image
+    source={require('../../../assets/brand/app-icon.png')}
+    style={{ width: size, height: size, borderRadius: size * 0.22 }}
+    resizeMode="cover"
+  />
+);
 
 const styles = StyleSheet.create({
   container: {

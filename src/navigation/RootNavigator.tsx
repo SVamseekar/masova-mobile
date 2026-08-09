@@ -18,6 +18,7 @@ import AuthNavigator from './AuthNavigator';
 
 // Screens
 import ItemDetailScreen from '../screens/menu/ItemDetailScreen';
+import CartScreen from '../screens/cart/CartScreen';
 import CheckoutOptionsScreen from '../screens/cart/CheckoutOptionsScreen';
 import GuestCheckoutScreen from '../screens/cart/GuestCheckoutScreen';
 import CheckoutScreen from '../screens/cart/CheckoutScreen';
@@ -69,6 +70,14 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
         <Stack.Screen
           name="ItemDetail"
           component={ItemDetailScreen}
+          options={{
+            animation: 'slide_from_bottom',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="Cart"
+          component={CartScreen}
           options={{
             animation: 'slide_from_bottom',
             presentation: 'modal',

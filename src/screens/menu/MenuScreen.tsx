@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MenuDishImage } from '../../components/menu/MenuDishImage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,7 +28,9 @@ import { getListPerfProps } from '../../utils/listPerf';
 
 import { Card, Chip, SearchBar, Badge } from '../../components/ui';
 import { StoreSelector } from '../../components/StoreSelector';
+import { useSelectedStore } from '../../hooks/useSelectedStore';
 import { RootStackParamList, MenuItem, Cuisine, Category } from '../../types';
+import { formatCategoryLabel, formatCuisineLabel, formatMenuPrice } from '../../utils/menuDisplay';
 
 // Category mappings based on cuisine (matching web version)
 const CUISINE_CATEGORY_MAP: Partial<Record<Cuisine, { id: Category; name: string }[]>> = {
@@ -464,79 +466,107 @@ const MenuScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { selectedStore, selectedStoreId } = useSelectedStore();
+  const currency = selectedStore?.currency;
+  const locale = selectedStore?.locale;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCuisine, setSelectedCuisine] = useState<Cuisine>('SOUTH_INDIAN');
+  const [selectedCuisine, setSelectedCuisine] = useState<Cuisine | 'ALL'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [vegOnly, setVegOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'popular' | 'price_low' | 'price_high'>('popular');
 
-  // Fetch menu items from API
-  const { data: menuItems, isLoading, isError, error, refetch } = useMenuItems({
-    cuisine: selectedCuisine,
-    category: selectedCategory || undefined,
-  });
+  // Full store menu from platform — filter client-side by cuisine/category
+  const { data: menuItems, isLoading, isError, error, refetch } = useMenuItems();
 
   React.useEffect(() => {
     if (isError && error) {
       analytics.track('menu.load.fail', {
-        storeId: selectedCuisine,
+        storeId: selectedStoreId || undefined,
         reason: error instanceof Error ? error.message : 'Menu query error',
       });
     }
-  }, [isError, error, selectedCuisine]);
+  }, [isError, error, selectedStoreId]);
 
+  const sourceItems = useMemo(() => {
+    const hasApiData = Array.isArray(menuItems) && menuItems.length > 0;
+    const allowMock = CONFIG.ENABLE_MOCK_FALLBACK;
+    return hasApiData ? menuItems! : allowMock ? MOCK_MENU_ITEMS : (menuItems || []);
+  }, [menuItems]);
 
-  // Get categories for selected cuisine
+  // Cuisines actually present on this store's menu
+  const availableCuisines = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of sourceItems) {
+      if (item.cuisine) set.add(item.cuisine);
+    }
+    return Array.from(set).sort() as Cuisine[];
+  }, [sourceItems]);
+
+  // Prefer live categories; fall back to static map for mock-only mode
   const availableCategories = useMemo(() => {
-    return CUISINE_CATEGORY_MAP[selectedCuisine] || [];
-  }, [selectedCuisine]);
+    const pool =
+      selectedCuisine === 'ALL'
+        ? sourceItems
+        : sourceItems.filter((i) => i.cuisine === selectedCuisine);
+    const counts = new Map<string, number>();
+    for (const item of pool) {
+      if (!item.category) continue;
+      counts.set(item.category, (counts.get(item.category) || 0) + 1);
+    }
+    if (counts.size > 0) {
+      return Array.from(counts.entries())
+        .map(([id, count]) => ({
+          id: id as Category,
+          name: formatCategoryLabel(id),
+          count,
+        }))
+        .sort((a, b) => b.count - a.count);
+    }
+    if (selectedCuisine !== 'ALL') {
+      return (CUISINE_CATEGORY_MAP[selectedCuisine] || []).map((c) => ({
+        ...c,
+        count: 0,
+      }));
+    }
+    return [];
+  }, [sourceItems, selectedCuisine]);
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
-    // Only fallback to mock data if ENABLE_MOCK_FALLBACK is explicitly enabled in dev mode
-    const hasApiData = Array.isArray(menuItems) && menuItems.length > 0;
-    const allowMock = CONFIG.ENABLE_MOCK_FALLBACK;
-    let items = [...(hasApiData ? menuItems : allowMock ? MOCK_MENU_ITEMS : (menuItems || []))];
+    let items = [...sourceItems];
 
-    // Deduplicate items by name (keep first occurrence)
-    // This handles cases where duplicate items exist in the database
     const seenNames = new Set<string>();
     items = items.filter((item) => {
       const key = `${item.name}-${item.cuisine}-${item.category}`;
-      if (seenNames.has(key)) {
-        return false;
-      }
+      if (seenNames.has(key)) return false;
       seenNames.add(key);
       return true;
     });
 
-    // Filter by cuisine
-    items = items.filter((item) => item.cuisine === selectedCuisine);
+    if (selectedCuisine !== 'ALL') {
+      items = items.filter((item) => item.cuisine === selectedCuisine);
+    }
 
-    // Filter by category if selected
     if (selectedCategory) {
       items = items.filter((item) => item.category === selectedCategory);
     }
 
-    // Filter by veg only
     if (vegOnly) {
       items = items.filter((item) =>
         item.dietaryInfo?.includes('VEGETARIAN') || item.dietaryInfo?.includes('VEGAN')
       );
     }
 
-    // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       items = items.filter(
         (item) =>
           item.name.toLowerCase().includes(query) ||
-          item.description.toLowerCase().includes(query)
+          (item.description || '').toLowerCase().includes(query)
       );
     }
 
-    // Sort
     switch (sortBy) {
       case 'price_low':
         items.sort((a, b) => a.basePrice - b.basePrice);
@@ -546,13 +576,18 @@ const MenuScreen: React.FC = () => {
         break;
       case 'popular':
       default:
-        items.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        // Platform flag first, then rating if present
+        items.sort((a, b) => {
+          const rec = Number(!!b.isRecommended) - Number(!!a.isRecommended);
+          if (rec !== 0) return rec;
+          return (b.rating || 0) - (a.rating || 0);
+        });
     }
 
     return items;
-  }, [menuItems, selectedCuisine, selectedCategory, vegOnly, searchQuery, sortBy]);
+  }, [sourceItems, selectedCuisine, selectedCategory, vegOnly, searchQuery, sortBy]);
 
-  const formatPrice = (price: number) => `₹${(price / 100).toFixed(0)}`;
+  const formatPrice = (price: number) => formatMenuPrice(price, currency, locale);
 
   const renderSpiceDots = (spiceLevel: string) => {
     const count = spiceLevel === 'MILD' ? 1 : spiceLevel === 'MEDIUM' ? 2 : spiceLevel === 'HOT' ? 3 : 4;
@@ -565,7 +600,7 @@ const MenuScreen: React.FC = () => {
     );
   };
 
-  const handleCuisinePress = (cuisine: Cuisine) => {
+  const handleCuisinePress = (cuisine: Cuisine | 'ALL') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedCuisine(cuisine);
     setSelectedCategory(null); // Reset category when cuisine changes
@@ -641,20 +676,13 @@ const MenuScreen: React.FC = () => {
             </View>
           </View>
           <View style={styles.imageContainer}>
-            {item.imageUrl ? (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.itemImage}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                recyclingKey={item.id}
-                transition={150}
-              />
-            ) : (
-              <View style={[styles.itemImage, styles.placeholderImage, { backgroundColor: theme.colors.surface2 }]}>
-                <Ionicons name="image-outline" size={48} color={theme.colors.text3} />
-              </View>
-            )}
+            <MenuDishImage
+              name={item.name}
+              imageUrl={item.imageUrl}
+              style={styles.itemImage}
+              placeholderColor={theme.colors.surface2}
+              iconColor={theme.colors.text3}
+            />
             {item.dietaryInfo && item.dietaryInfo.length > 0 && (
               <View style={styles.dietaryDotOverlay}>
                 <View
@@ -695,7 +723,7 @@ const MenuScreen: React.FC = () => {
 
       {/* Store Selector */}
       <View style={styles.storeSelectorContainer}>
-        <StoreSelector onStoreChange={(store) => console.log('Selected store:', store)} />
+        <StoreSelector />
       </View>
 
       {/* Search & Filters */}
@@ -736,7 +764,7 @@ const MenuScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Cuisines */}
+      {/* Cuisines from this store's live menu */}
       <View style={styles.cuisineSection}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>Cuisine</Text>
         <ScrollView
@@ -744,7 +772,15 @@ const MenuScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cuisinesContainer}
         >
-          {CUISINES.map((cuisine) => (
+          {([
+            { id: 'ALL' as const, name: 'All' },
+            ...(availableCuisines.length > 0
+              ? availableCuisines.map((id) => ({
+                  id: id as Cuisine | 'ALL',
+                  name: formatCuisineLabel(id),
+                }))
+              : CUISINES.map((c) => ({ id: c.id as Cuisine | 'ALL', name: c.name }))),
+          ] as { id: Cuisine | 'ALL'; name: string }[]).map((cuisine) => (
             <TouchableOpacity
               key={cuisine.id}
               onPress={() => handleCuisinePress(cuisine.id)}
@@ -757,7 +793,6 @@ const MenuScreen: React.FC = () => {
                 },
               ]}
             >
-              {/* icon removed — clean text-only cuisine chips */}
               <Text
                 style={[
                   styles.cuisineName,
@@ -776,11 +811,13 @@ const MenuScreen: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Categories (changes based on selected cuisine) */}
+      {/* Categories from live menu for selected cuisine */}
       {availableCategories.length > 0 && (
         <View style={styles.categorySection}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-            {selectedCuisine.replace(/_/g, ' ')} Categories
+            {selectedCuisine === 'ALL'
+              ? 'Categories'
+              : `${formatCuisineLabel(selectedCuisine)} categories`}
           </Text>
           <ScrollView
             horizontal
@@ -796,7 +833,7 @@ const MenuScreen: React.FC = () => {
             {availableCategories.map((cat) => (
               <Chip
                 key={cat.id}
-                label={cat.name}
+                label={cat.count > 0 ? `${cat.name} (${cat.count})` : cat.name}
                 selected={selectedCategory === cat.id}
                 onPress={() => handleCategoryPress(cat.id)}
                 style={styles.categoryChip}

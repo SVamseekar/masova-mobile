@@ -37,10 +37,25 @@ export const deliveryApi = {
       `/delivery/zones?storeId=${encodeURIComponent(storeId)}&lat=${latitude}&lng=${longitude}&check=true`
     );
     const raw = response.data || {};
-    const inZoneValue = raw.inZone ?? raw.isWithinDeliveryZone ?? true;
+    // Prefer explicit booleans; do not invent "outside" when the payload is empty
+    const hasExplicit =
+      typeof raw.inZone === 'boolean' || typeof raw.isWithinDeliveryZone === 'boolean';
+    const inZoneValue = hasExplicit
+      ? (raw.inZone ?? raw.isWithinDeliveryZone)
+      : true;
     return {
       ...raw,
       inZone: Boolean(inZoneValue),
+      isWithinDeliveryZone:
+        typeof raw.isWithinDeliveryZone === 'boolean'
+          ? raw.isWithinDeliveryZone
+          : Boolean(inZoneValue),
+      distanceKm:
+        typeof raw.distanceKm === 'number'
+          ? raw.distanceKm
+          : typeof raw.distance === 'number'
+            ? raw.distance
+            : undefined,
     };
   },
 };

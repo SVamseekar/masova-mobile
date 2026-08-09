@@ -1,5 +1,7 @@
 import httpClient from '../http/client';
 import { MenuItem, Category, Cuisine, DietaryType } from '../../types';
+import { resolveMenuImageUrl } from '../../utils/menuDisplay';
+import { CONFIG } from '../../config';
 
 export interface MenuQueryParams {
   storeId?: string;
@@ -11,11 +13,34 @@ export interface MenuQueryParams {
   tag?: string;
 }
 
-const mapMenuItem = (item: any): MenuItem => ({
-  ...item,
-  id: item.id || item._id || '',
-  basePrice: item.basePrice ?? item.price ?? 0,
-});
+/**
+ * Seed stores imageUrl as `/images/menu/{slug}.jpg` (frontend public assets).
+ * Those files are also bundled in the mobile app via menuImages.ts — remote
+ * absolutization is best-effort for any real CDN URLs.
+ */
+function absolutizeMediaUrl(url: string | undefined): string {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url;
+  // Keep relative seed paths as-is; MenuDishImage resolves them locally by slug
+  if (url.startsWith('/images/menu/')) return url;
+  const base = (CONFIG.API_BASE_URL || '').replace(/\/$/, '');
+  const origin = base.replace(/\/api$/, '');
+  if (url.startsWith('/')) return `${origin}${url}`;
+  return `${base}/${url}`;
+}
+
+const mapMenuItem = (item: any): MenuItem => {
+  const rawImage = resolveMenuImageUrl(item);
+  return {
+    ...item,
+    id: item.id || item._id || '',
+    basePrice: item.basePrice ?? item.price ?? 0,
+    discountedPrice: item.discountedPrice ?? item.salePrice,
+    imageUrl: absolutizeMediaUrl(rawImage || item.imageUrl || ''),
+    isRecommended: item.isRecommended ?? item.recommended ?? false,
+    isAvailable: item.isAvailable !== false && item.available !== false,
+  };
+};
 
 export const menuApi = {
   getMenu: async (params?: MenuQueryParams): Promise<MenuItem[]> => {
