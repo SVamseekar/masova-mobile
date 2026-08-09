@@ -12,7 +12,7 @@
 |-------|-------------|--------|--------------|
 | **Phase 0** | Tooling, strict CI, scripts, docs skeleton, README rewrite | **COMPLETED** | `npm run typecheck && npm run lint && npm test` GREEN |
 | **Phase A** | API Contract Re-sync (P0) | **COMPLETED** | 0 legacy paths in `src/`, 14 contract tests GREEN, `docs/API_CONTRACT.md` verified |
-| **Phase B** | Product Parity | Next | Scheduled |
+| **Phase B** | Product Parity | **COMPLETED** | Preferences, Notification Settings, Loyalty History, Change Password, and Delivery Radius Check screens & unit tests GREEN (16 tests pass) |
 | **Phase C** | Realtime & Resilience | Next | Scheduled |
 | **Phase D** | Testing Hardening | Next | Scheduled |
 | **Phase E** | Observability & Release | Next | Scheduled |
@@ -64,12 +64,16 @@ $ npm test
 
 ---
 
-## Known Residuals for Next Session
+## Known Residuals & Phase B Deliverables Summary
 
-1. **`MOCK_MENU` / `MOCK_ITEM` Fallback:** Legacy fallback objects remain in `MenuScreen.tsx` and `ItemDetailScreen.tsx` when network errors occur.
-2. **`OrderReviewScreen`:** Screen still uses a fake submit placeholder rather than binding directly to `reviewApi.create()`.
-3. **Guest Checkout Strategy:** Lookup-only via `GET /customers?userId=guest_*`; does not invoke forbidden `POST /customers/get-or-create`, so guest users without pre-existing customer records will fail.
-4. **Order History Customer Fallback:** `OrderHistoryScreen.tsx` falls back to `user.id` if customer profile resolution fails.
-5. **`setClientSelectedStoreContext` Sync:** Header context must be explicitly confirmed on store selector change events across app lifecycle.
-6. **ESLint Warnings:** ~82 `any`/unused variable warnings remain to be cleaned up during Phase D.
-7. **Live End-to-End Smoke Test:** Recommended in next session against live Dell gateway (`http://192.168.50.88:8080/api`).
+### Phase B Deliverables Completed (Commit `ada68b3`)
+1. **Preferences Editor (`PreferencesScreen.tsx`):** Manage dietary restrictions (Vegetarian, Vegan, Jain, etc.), allergen alerts (14 mandatory declarable EU/FSSAI allergens), spice level selection, and call `customerApi.updatePreferences(id, preferences)` (`PATCH /api/customers/{id}`).
+2. **Notification Settings (`NotificationSettingsScreen.tsx`):** Toggle order status and promo offer push notifications bound to customer preferences.
+3. **Loyalty History (`LoyaltyHistoryScreen.tsx`):** Tier badge display (`BRONZE`/`SILVER`/`GOLD`/`PLATINUM`), progress to next tier, total points, earned/redeemed points, and transaction history list (`pointHistory`).
+4. **Delivery Radius Check:** Added pre-checkout validation calling `deliveryApi.checkDeliveryZone(storeId, lat, lng)` (`GET /delivery/zones?storeId=&lat=&lng=&check=true`) in `CheckoutScreen.tsx`.
+5. **Change Password (`ChangePasswordScreen.tsx`):** Password updates bound to `authApi.changePassword` (`POST /api/auth/change-password`).
+6. **Live Backend Verification:** Verified against live Dell Gateway `http://192.168.50.88:8080/api`:
+   - Auth login (`POST /api/auth/login`) with `anna.mueller@gmail.com`
+   - Store retrieval (`GET /api/stores`)
+   - Customer lookup (`GET /api/customers?userId=6a78c3221b7266b64888a0fa`)
+7. **Quality Gates:** 0 typecheck errors, 0 lint errors, 16/16 unit tests passing.
