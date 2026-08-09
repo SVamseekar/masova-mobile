@@ -13,7 +13,7 @@
 | **Phase 0** | Tooling, strict CI, scripts, docs skeleton, README rewrite | **COMPLETED** | `npm run typecheck && npm run lint && npm test` GREEN |
 | **Phase A** | API Contract Re-sync (P0) | **COMPLETED** | 0 legacy paths in `src/`, 14 contract tests GREEN, `docs/API_CONTRACT.md` verified |
 | **Phase B** | Product Parity | **COMPLETED** | Preferences, Notification Settings, Loyalty History, Change Password, and Delivery Radius Check screens & unit tests GREEN (16 tests pass) |
-| **Phase C** | Realtime & Resilience | Next | Scheduled |
+| **Phase C** | Realtime & Resilience | **COMPLETED** | WS exponential backoff & token refresh, order + delivery WS topics with REST fallback, store-switch cart guard, global offline banner, checkout double-submit lock, a11y labels. 23 unit tests GREEN. |
 | **Phase D** | Testing Hardening | Next | Scheduled |
 | **Phase E** | Observability & Release | Next | Scheduled |
 | **Phase F** | Production Hardening | Next | Scheduled |
@@ -78,3 +78,40 @@ $ npm test
    - Customer lookup (`GET /api/customers?userId=6a78c3221b7266b64888a0fa`)
 7. **Quality Gates:** 0 typecheck errors, 0 lint errors, 16/16 unit tests passing.
 8. **Phase B Residual P0 Fix (Commit `df43cc8`):** Mapped `isWithinDeliveryZone` field from live Dell gateway response (`GET /api/delivery/zones?storeId=&lat=&lng=&check=true`) to `inZone` in `deliveryApi.checkDeliveryZone`. Hardened `CheckoutScreen.tsx` and added unit test assertion verifying `isWithinDeliveryZone: false` correctly evaluates `inZone === false` and blocks out-of-radius checkout. Live response verified against Dell gateway (`{"isWithinDeliveryZone":false}`).
+
+---
+
+## Phase C Deliverables Summary (Realtime & UX Resilience)
+
+1. **WebSocket Resilience (C1):** Hardened single `websocketService` STOMP client singleton.
+   - Added `calculateBackoffDelay` helper with exponential backoff and jitter bounds.
+   - Configured `beforeConnect` and reconnect routines to fetch fresh `accessToken` from Keychain (`secureTokenStorage`).
+   - Aligned topics: `/topic/order/${orderId}` and `/topic/delivery/${orderId}`.
+   - Added automatic subscription re-establishment (`resubscribeAll`) on WebSocket reconnects.
+   - Exposed `reconnecting` connection state and state listener notifications.
+   - Added unit test suite `websocketService.test.ts` (7 tests).
+
+2. **Order + Delivery Live Updates (C2):**
+   - Enhanced `useOrderTracking.ts` to subscribe to both `/topic/order/{id}` and `/topic/delivery/{id}` with REST fallback (`orderApi.getById` & `deliveryApi.track`).
+   - `OrderTrackingScreen.tsx`: Updated payment status rendering to handle both `PAID` (canonical order payment status) and `SUCCESS` payment transaction states. Added live connection status badge (`LIVE` vs `RECONNECTING` vs `POLLING`) in screen header.
+
+3. **Cart Store-Switch Guard (C3):**
+   - Integrated `StoreSelector.tsx` with `useStoreContext` and `useCart`.
+   - Prompt confirmation dialog (`Alert.alert`) if user attempts to change store while cart has items (`itemCount > 0`).
+
+4. **Global Offline Banner (C4):**
+   - Created `useNetworkStatus` hook using `@react-native-community/netinfo`.
+   - Built `OfflineBanner` component rendered globally in `App.tsx`.
+   - Blocked place-order in `CheckoutScreen.tsx` when offline with clear user notification and button state.
+
+5. **Checkout Double-Submit Hard Lock (C5):**
+   - Added `submittingRef` and `isSubmitting` lock in `CheckoutScreen.tsx`.
+   - Prevents duplicate taps, double order creation, double haptic feedback, and duplicate navigation transitions while order placement / payment is in flight.
+
+6. **Basic Accessibility Pass (C6):**
+   - Added `accessibilityRole`, `accessibilityLabel`, and `accessibilityState` props to `Button.tsx`, `OfflineBanner.tsx`, `CheckoutScreen.tsx`, and `OrderTrackingScreen.tsx` primary CTAs and header buttons.
+
+7. **Quality Gates Verification:**
+   - `npm run typecheck`: 0 errors (clean)
+   - `npm run lint`: 0 errors
+   - `npm test`: 4 passed, 4 total test suites, 23 passed, 23 total tests.
