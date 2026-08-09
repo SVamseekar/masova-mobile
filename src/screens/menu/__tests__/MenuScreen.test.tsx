@@ -7,6 +7,21 @@ import { lightTheme } from '../../../styles/theme';
 
 jest.mock('../../../hooks/useMenuQueries');
 jest.mock('../../../hooks/useTheme');
+jest.mock('../../../hooks/useSelectedStore', () => ({
+  useSelectedStore: () => ({
+    selectedStore: {
+      id: 'DOM001',
+      storeCode: 'DOM001',
+      name: 'Berlin Mitte',
+      currency: 'EUR',
+      locale: 'de-DE',
+      countryCode: 'DE',
+    },
+    selectedStoreId: 'DOM001',
+    setSelectedStore: jest.fn(),
+    isLoading: false,
+  }),
+}));
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: jest.fn(),

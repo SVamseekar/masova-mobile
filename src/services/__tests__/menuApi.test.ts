@@ -51,6 +51,10 @@ describe('menuApi Service', () => {
           basePrice: 15000,
           category: 'DOSA',
           cuisine: 'SOUTH_INDIAN',
+          discountedPrice: undefined,
+          imageUrl: '',
+          isAvailable: true,
+          isRecommended: false,
         },
       ]);
     });
