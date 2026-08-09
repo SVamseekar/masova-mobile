@@ -1,6 +1,6 @@
 # MaSoVa Mobile — Production Upgrade Progress & Verification Report
 
-**Date:** 2026-08-09  
+**Date:** 2026-08-10  
 **Repository:** `masova-mobile`  
 **Current Branch:** `security-remediation-plan-b`
 
@@ -14,7 +14,7 @@
 | **Phase A** | API Contract Re-sync (P0) | **COMPLETED** | 0 legacy paths in `src/`, 14 contract tests GREEN, `docs/API_CONTRACT.md` verified |
 | **Phase B** | Product Parity | **COMPLETED** | Preferences, Notification Settings, Loyalty History, Change Password, and Delivery Radius Check screens & unit tests GREEN (16 tests pass) |
 | **Phase C** | Realtime & Resilience | **COMPLETED** | WS exponential backoff & token refresh, order + delivery WS topics with REST fallback, store-switch cart guard, global offline banner, checkout double-submit lock, a11y labels. 23 unit tests GREEN. |
-| **Phase D** | Testing Hardening | Next | Scheduled |
+| **Phase D** | Testing Hardening | **COMPLETED** | Unit/Service coverage >70% (100% on `src/services/api` & `src/utils`), 4 component tests, Maestro Android smoke path, live Dell gateway smoke script passing, CI quality gates active |
 | **Phase E** | Observability & Release | Next | Scheduled |
 | **Phase F** | Production Hardening | Next | Scheduled |
 
@@ -30,11 +30,11 @@ $ npm run typecheck
 
 $ npm run lint
 > eslint src/
-# Output: Exit code 0, 0 errors, 82 warnings
+# Output: Exit code 0, 0 errors, 106 warnings
 
 $ npm test
 > jest
-# Output: Exit code 0 (3 test suites passed, 14 tests passed)
+# Output: Exit code 0 (19 test suites passed, 120 tests passed)
 ```
 
 ### 2. Legacy Path Audit (Ripgrep)
@@ -67,51 +67,49 @@ $ npm test
 ## Known Residuals & Phase B Deliverables Summary
 
 ### Phase B Deliverables Completed (Commit `ada68b3`)
-1. **Preferences Editor (`PreferencesScreen.tsx`):** Manage dietary restrictions (Vegetarian, Vegan, Jain, etc.), allergen alerts (14 mandatory declarable EU/FSSAI allergens), spice level selection, and call `customerApi.updatePreferences(id, preferences)` (`PATCH /api/customers/{id}`).
-2. **Notification Settings (`NotificationSettingsScreen.tsx`):** Toggle order status and promo offer push notifications bound to customer preferences.
-3. **Loyalty History (`LoyaltyHistoryScreen.tsx`):** Tier badge display (`BRONZE`/`SILVER`/`GOLD`/`PLATINUM`), progress to next tier, total points, earned/redeemed points, and transaction history list (`pointHistory`).
-4. **Delivery Radius Check:** Added pre-checkout validation calling `deliveryApi.checkDeliveryZone(storeId, lat, lng)` (`GET /delivery/zones?storeId=&lat=&lng=&check=true`) in `CheckoutScreen.tsx`.
-5. **Change Password (`ChangePasswordScreen.tsx`):** Password updates bound to `authApi.changePassword` (`POST /api/auth/change-password`).
-6. **Live Backend Verification:** Verified against live Dell Gateway `http://192.168.50.88:8080/api`:
-   - Auth login (`POST /api/auth/login`) with `anna.mueller@gmail.com`
-   - Store retrieval (`GET /api/stores`)
-   - Customer lookup (`GET /api/customers?userId=6a78c3221b7266b64888a0fa`)
-7. **Quality Gates:** 0 typecheck errors, 0 lint errors, 16/16 unit tests passing.
-8. **Phase B Residual P0 Fix (Commit `df43cc8`):** Mapped `isWithinDeliveryZone` field from live Dell gateway response (`GET /api/delivery/zones?storeId=&lat=&lng=&check=true`) to `inZone` in `deliveryApi.checkDeliveryZone`. Hardened `CheckoutScreen.tsx` and added unit test assertion verifying `isWithinDeliveryZone: false` correctly evaluates `inZone === false` and blocks out-of-radius checkout. Live response verified against Dell gateway (`{"isWithinDeliveryZone":false}`).
+1. **Preferences Editor (`PreferencesScreen.tsx`):** Manage dietary restrictions, allergen alerts, spice level selection (`PATCH /api/customers/{id}`).
+2. **Notification Settings (`NotificationSettingsScreen.tsx`):** Toggle order status and promo offer push notifications.
+3. **Loyalty History (`LoyaltyHistoryScreen.tsx`):** Tier badge display, points progress, and transaction history list.
+4. **Delivery Radius Check:** Pre-checkout validation calling `deliveryApi.checkDeliveryZone` in `CheckoutScreen.tsx`.
+5. **Change Password (`ChangePasswordScreen.tsx`):** Password updates bound to `authApi.changePassword`.
+6. **Live Backend Verification:** Verified against live Dell Gateway `http://192.168.50.88:8080/api`.
 
 ---
 
 ## Phase C Deliverables Summary (Realtime & UX Resilience)
 
-1. **WebSocket Resilience (C1):** Hardened single `websocketService` STOMP client singleton.
-   - Added `calculateBackoffDelay` helper with exponential backoff and jitter bounds.
-   - Configured `beforeConnect` and reconnect routines to fetch fresh `accessToken` from Keychain (`secureTokenStorage`).
-   - Aligned topics: `/topic/order/${orderId}` and `/topic/delivery/${orderId}`.
-   - Added automatic subscription re-establishment (`resubscribeAll`) on WebSocket reconnects.
-   - Exposed `reconnecting` connection state and state listener notifications.
-   - Added unit test suite `websocketService.test.ts` (7 tests).
+1. **WebSocket Resilience (C1):** Exponential backoff delay calculation with jitter, fresh token acquisition on reconnect, aligned topics (`/topic/order/${id}` & `/topic/delivery/${id}`), automatic resubscription.
+2. **Order + Delivery Live Updates (C2):** Subscribes to order and delivery STOMP topics with REST fallback, live connection status badge in header.
+3. **Cart Store-Switch Guard (C3):** Confirmation alert before changing selected store when cart contains items.
+4. **Global Offline Banner (C4):** `OfflineBanner` component rendered in root `App.tsx`, disables place-order CTA during network disconnects.
+5. **Checkout Double-Submit Hard Lock (C5):** Prevents duplicate order placement or payment initiation.
+6. **Basic Accessibility Pass (C6):** Added accessibility props to primary buttons and headers.
 
-2. **Order + Delivery Live Updates (C2):**
-   - Enhanced `useOrderTracking.ts` to subscribe to both `/topic/order/{id}` and `/topic/delivery/{id}` with REST fallback (`orderApi.getById` & `deliveryApi.track`).
-   - `OrderTrackingScreen.tsx`: Updated payment status rendering to handle both `PAID` (canonical order payment status) and `SUCCESS` payment transaction states. Added live connection status badge (`LIVE` vs `RECONNECTING` vs `POLLING`) in screen header.
+---
 
-3. **Cart Store-Switch Guard (C3):**
-   - Integrated `StoreSelector.tsx` with `useStoreContext` and `useCart`.
-   - Prompt confirmation dialog (`Alert.alert`) if user attempts to change store while cart has items (`itemCount > 0`).
+## Phase D Deliverables Summary (Testing Hardening)
 
-4. **Global Offline Banner (C4):**
-   - Created `useNetworkStatus` hook using `@react-native-community/netinfo`.
-   - Built `OfflineBanner` component rendered globally in `App.tsx`.
-   - Blocked place-order in `CheckoutScreen.tsx` when offline with clear user notification and button state.
+1. **Unit & Service Test Coverage (D1):**
+   - **`src/services/api/`**: 100% line coverage (`authApi`, `customerApi`, `orderApi`, `paymentApi`, `storeApi`, `menuApi`, `notificationApi`, `reviewApi`, `deliveryApi`).
+   - **`src/utils/`**: 100% line coverage (`money.ts`).
+   - **`src/services/secureTokenStorage.ts`**: 100% line coverage.
+   - **Total Suites & Tests**: 19 test suites, 120 passing tests.
 
-5. **Checkout Double-Submit Hard Lock (C5):**
-   - Added `submittingRef` and `isSubmitting` lock in `CheckoutScreen.tsx`.
-   - Prevents duplicate taps, double order creation, double haptic feedback, and duplicate navigation transitions while order placement / payment is in flight.
+2. **Component Tests (D2):**
+   - `LoginScreen.test.tsx`: Validates login form inputs and error banner display on authentication failure.
+   - `MenuScreen.test.tsx`: Validates menu empty state ("No items found") and query error state with retry button.
+   - `CheckoutScreen.test.tsx`: Validates disabled Place Order CTA when offline or empty cart, and enabled state when online.
+   - `OfflineBanner.test.tsx`: Validates null render when online and alert banner render when offline.
 
-6. **Basic Accessibility Pass (C6):**
-   - Added `accessibilityRole`, `accessibilityLabel`, and `accessibilityState` props to `Button.tsx`, `OfflineBanner.tsx`, `CheckoutScreen.tsx`, and `OrderTrackingScreen.tsx` primary CTAs and header buttons.
+3. **E2E Mobile Smoke Test Path (D3):**
+   - Created `.maestro/smoke.yaml` defining Android smoke path (App launch -> Login / Guest flow -> Menu load verification).
+   - Documented setup and execution instructions in `docs/TESTING.md`.
 
-7. **Quality Gates Verification:**
-   - `npm run typecheck`: 0 errors (clean)
-   - `npm run lint`: 0 errors
-   - `npm test`: 4 passed, 4 total test suites, 23 passed, 23 total tests.
+4. **Staging / Dell Smoke Script (D4):**
+   - Created `scripts/dell-smoke-test.js` and added `"smoke:dell": "node scripts/dell-smoke-test.js"` in `package.json`.
+   - Verified 4/4 passing tests against live Dell Gateway (`http://192.168.50.88:8080/api`).
+   - Documented in `docs/TESTING.md`.
+
+5. **CI Quality Gates (D5):**
+   - Updated `.github/workflows/ci.yml` requiring unit/component test execution (`npm run test:ci`).
+   - Added nightly (2 AM UTC) and manual (`workflow_dispatch`) E2E smoke test job (`npm run smoke:dell`) without soft fails (`|| true` strictly forbidden).

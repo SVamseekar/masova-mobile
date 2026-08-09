@@ -34,21 +34,41 @@ describe('websocketService unit tests', () => {
 
     it('applies jitter within expected bounds (+/- 20%)', () => {
       const delay = calculateBackoffDelay(3, 1000, 30000, true);
-      // Expected exp value: 4000. Jitter range: 3200..4800
       expect(delay).toBeGreaterThanOrEqual(3200);
       expect(delay).toBeLessThanOrEqual(4800);
     });
   });
 
-  describe('connection state management', () => {
+  describe('connection state management and subscriptions', () => {
     it('allows registering and unregistering connection state listeners', () => {
       const listener = jest.fn();
       const unsubscribe = websocketService.onConnectionStateChange(listener);
 
-      // Immediately called with current state
       expect(listener).toHaveBeenCalledWith('disconnected');
+      expect(websocketService.getConnectionState()).toBe('disconnected');
 
       unsubscribe();
+    });
+
+    it('allows subscribing and unsubscribing to order updates', () => {
+      const callback = jest.fn();
+      const unsub = websocketService.subscribeToOrder('ord-99', callback);
+
+      expect(typeof unsub).toBe('function');
+      unsub();
+    });
+
+    it('allows subscribing and unsubscribing to delivery updates', () => {
+      const callback = jest.fn();
+      const unsub = websocketService.subscribeToDelivery('ord-99', callback);
+
+      expect(typeof unsub).toBe('function');
+      unsub();
+    });
+
+    it('clears state on disconnect call', () => {
+      websocketService.disconnect();
+      expect(websocketService.getConnectionState()).toBe('disconnected');
     });
   });
 });
