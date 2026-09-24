@@ -313,6 +313,7 @@ export interface Order {
   updatedAt: string;
   completedAt?: string;
   deliveryOtp?: string;
+  cancellationRequested?: boolean;
 }
 
 export interface OrderItem {

@@ -78,8 +78,10 @@ export const useCancelOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (orderId: string) => orderApi.cancel(orderId),
-    onSuccess: (_, orderId) => {
+    mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
+      orderApi.cancel(orderId, reason),
+    onSuccess: (updated, { orderId }) => {
+      queryClient.setQueryData(['orders', orderId], updated);
       queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
       queryClient.invalidateQueries({ queryKey: ['orders', 'customer'] });
     },

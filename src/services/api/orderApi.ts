@@ -55,8 +55,8 @@ export const orderApi = {
   },
 
   cancel: async (orderId: string, reason?: string): Promise<Order> => {
-    const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
-    const response = await httpClient.delete<Order>(`/orders/${orderId}${params}`);
+    const body = reason ? { reason } : {};
+    const response = await httpClient.post<Order>(`/orders/${orderId}/cancel-request`, body);
     return response.data;
   },
 };
