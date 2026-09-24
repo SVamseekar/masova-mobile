@@ -118,21 +118,25 @@ describe('orderApi Service', () => {
   });
 
   describe('cancel', () => {
-    it('cancels order with optional reason parameter', async () => {
-      const mockCancelled = { id: 'ord_100', status: 'CANCELLED' };
-      (httpClient.delete as jest.Mock).mockResolvedValue({ data: mockCancelled });
+    it('posts cancel-request with reason body and does not delete', async () => {
+      const mockRequested = { id: 'ord_100', status: 'PREPARING', cancellationRequested: true };
+      (httpClient.post as jest.Mock).mockResolvedValue({ data: mockRequested });
 
       const result = await orderApi.cancel('ord_100', 'Changed mind');
 
-      expect(httpClient.delete).toHaveBeenCalledWith('/orders/ord_100?reason=Changed%20mind');
-      expect(result).toEqual(mockCancelled);
+      expect(httpClient.post).toHaveBeenCalledWith('/orders/ord_100/cancel-request', { reason: 'Changed mind' });
+      expect(httpClient.delete).not.toHaveBeenCalled();
+      expect(result).toEqual(mockRequested);
+      expect(result.status).not.toBe('CANCELLED');
     });
 
-    it('cancels order without reason query param when omitted', async () => {
-      (httpClient.delete as jest.Mock).mockResolvedValue({ data: { id: 'ord_100' } });
+    it('posts cancel-request with empty body when reason is omitted', async () => {
+      (httpClient.post as jest.Mock).mockResolvedValue({ data: { id: 'ord_100', status: 'RECEIVED' } });
 
       await orderApi.cancel('ord_100');
-      expect(httpClient.delete).toHaveBeenCalledWith('/orders/ord_100');
+
+      expect(httpClient.post).toHaveBeenCalledWith('/orders/ord_100/cancel-request', {});
+      expect(httpClient.delete).not.toHaveBeenCalled();
     });
   });
 });

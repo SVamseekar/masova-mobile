@@ -23,6 +23,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { spacing, borderRadius, typography } from '../../styles';
 import { Card, Badge, Button } from '../../components/ui';
+import CancelRequestSection from '../../components/order/CancelRequestSection';
 import { orderApi, menuApi } from '../../services/api';
 import { Order, RootStackParamList } from '../../types';
 
@@ -248,6 +249,13 @@ const OrderDetailScreen: React.FC = () => {
             </View>
           </Card>
         )}
+
+        <CancelRequestSection
+          orderId={order.id}
+          status={order.status}
+          cancellationRequested={order.cancellationRequested}
+          onRequested={(updated) => setOrder(updated)}
+        />
 
         {/* Actions */}
         <View style={styles.actions}>

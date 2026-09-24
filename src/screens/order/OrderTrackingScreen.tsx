@@ -26,6 +26,7 @@ import { useStoreCurrency } from '../../hooks/useStoreCurrency';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Card, Badge, FloatingChatBubble } from '../../components/ui';
+import CancelRequestSection from '../../components/order/CancelRequestSection';
 import { RootStackParamList, OrderStatus, DeliveryTracking } from '../../types';
 import { useOrderTracking } from '../../hooks/useOrderTracking';
 import { deliveryApi } from '../../services/api';
@@ -667,6 +668,12 @@ const OrderTrackingScreen: React.FC = () => {
             </View>
           </View>
         </Card>
+
+        <CancelRequestSection
+          orderId={order.id}
+          status={order.status}
+          cancellationRequested={order.cancellationRequested}
+        />
 
         {/* Need Help */}
         <TouchableOpacity
