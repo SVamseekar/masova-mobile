@@ -277,6 +277,7 @@ export type OrderStatus =
   | 'BAKED'
   | 'READY'
   | 'DISPATCHED'
+  | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
   | 'COMPLETED'
   | 'SERVED'
