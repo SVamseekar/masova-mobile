@@ -45,6 +45,7 @@ const statusLabel = (status: string) => {
     BAKED: 'Ready',
     READY: 'Ready',
     DISPATCHED: 'On the way',
+    OUT_FOR_DELIVERY: 'Out for delivery',
     DELIVERED: 'Delivered',
     COMPLETED: 'Completed',
     SERVED: 'Served',
@@ -138,6 +139,7 @@ const OrderHistoryScreen: React.FC = () => {
       case 'CANCELLED':
         return 'error';
       case 'DISPATCHED':
+      case 'OUT_FOR_DELIVERY':
         return 'warning';
       default:
         return 'primary';

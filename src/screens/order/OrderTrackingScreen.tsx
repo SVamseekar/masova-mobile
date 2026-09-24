@@ -27,53 +27,12 @@ import { isFeatureEnabled } from '../../config/featureFlags';
 import { spacing, borderRadius, typography, shadows } from '../../styles';
 import { Button, Card, Badge, FloatingChatBubble } from '../../components/ui';
 import CancelRequestSection from '../../components/order/CancelRequestSection';
-import { RootStackParamList, OrderStatus, DeliveryTracking } from '../../types';
+import { RootStackParamList, DeliveryTracking } from '../../types';
 import { useOrderTracking } from '../../hooks/useOrderTracking';
 import { deliveryApi } from '../../services/api';
+import { getOrderStages, isDeliveryOnTheWay } from './orderStages';
 
 type OrderTrackingRouteProp = RouteProp<RootStackParamList, 'OrderTracking'>;
-
-// Order stages for DELIVERY orders - matches KDS statuses exactly
-const DELIVERY_ORDER_STAGES: { status: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { status: 'RECEIVED', label: 'Order Received', icon: 'checkmark-circle' },
-  { status: 'PREPARING', label: 'Preparing', icon: 'restaurant' },
-  { status: 'OVEN', label: 'In Oven', icon: 'flame' },
-  { status: 'BAKED', label: 'Ready', icon: 'fast-food' },
-  { status: 'DISPATCHED', label: 'On the Way', icon: 'bicycle' },
-  { status: 'DELIVERED', label: 'Delivered', icon: 'home' },
-];
-
-// Order stages for TAKEAWAY/PICKUP orders
-const TAKEAWAY_ORDER_STAGES: { status: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { status: 'RECEIVED', label: 'Order Received', icon: 'checkmark-circle' },
-  { status: 'PREPARING', label: 'Preparing', icon: 'restaurant' },
-  { status: 'OVEN', label: 'In Oven', icon: 'flame' },
-  { status: 'BAKED', label: 'Ready for Pickup', icon: 'bag-check' },
-  { status: 'COMPLETED', label: 'Picked Up', icon: 'checkmark-done-circle' },
-];
-
-// Order stages for DINE_IN orders - matches KDS statuses exactly
-const DINE_IN_ORDER_STAGES: { status: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { status: 'RECEIVED', label: 'Order Received', icon: 'checkmark-circle' },
-  { status: 'PREPARING', label: 'Preparing', icon: 'restaurant' },
-  { status: 'OVEN', label: 'In Oven', icon: 'flame' },
-  { status: 'BAKED', label: 'Ready to Serve', icon: 'fast-food' },
-  { status: 'SERVED', label: 'Served', icon: 'checkmark-done-circle' },
-];
-
-// Get order stages based on order type
-const getOrderStages = (orderType?: string) => {
-  switch (orderType) {
-    case 'TAKEAWAY':
-    case 'COLLECTION':
-      return TAKEAWAY_ORDER_STAGES;
-    case 'DINE_IN':
-      return DINE_IN_ORDER_STAGES;
-    case 'DELIVERY':
-    default:
-      return DELIVERY_ORDER_STAGES;
-  }
-};
 
 const OrderTrackingScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -112,7 +71,7 @@ const OrderTrackingScreen: React.FC = () => {
   // Fetch delivery tracking info via REST when order is dispatched as fallback
   useEffect(() => {
     const fetchDeliveryInfo = async () => {
-      if ((order?.status === 'DISPATCHED' || order?.status === 'DELIVERED') && !wsDelivery) {
+      if ((isDeliveryOnTheWay(order?.status || '') || order?.status === 'DELIVERED') && !wsDelivery) {
         setDeliveryLoading(true);
         try {
           const tracking = await deliveryApi.track(orderId);
@@ -276,7 +235,7 @@ const OrderTrackingScreen: React.FC = () => {
   const custLon = order.deliveryAddress?.longitude;
   const showLiveMap =
     order.orderType === 'DELIVERY' &&
-    (currentStatus === 'DISPATCHED' || currentStatus === 'DELIVERED') &&
+    (isDeliveryOnTheWay(currentStatus) || currentStatus === 'DELIVERED') &&
     !!driverLat && !!driverLon;
 
   return (
@@ -384,7 +343,7 @@ const OrderTrackingScreen: React.FC = () => {
                   ? 'Order served!'
                   : currentStatus === 'DELIVERED'
                   ? 'Order delivered!'
-                  : currentStatus === 'DISPATCHED'
+                  : isDeliveryOnTheWay(currentStatus)
                   ? 'Your order is on the way!'
                   : currentStatus === 'BAKED'
                   ? order.orderType === 'DELIVERY'
@@ -443,7 +402,7 @@ const OrderTrackingScreen: React.FC = () => {
         </Card>
 
         {/* Driver Info - Only show for delivery orders when dispatched */}
-        {order.orderType === 'DELIVERY' && (currentStatus === 'DISPATCHED' || currentStatus === 'DELIVERED') && (
+        {order.orderType === 'DELIVERY' && (isDeliveryOnTheWay(currentStatus) || currentStatus === 'DELIVERED') && (
           <Card elevation="sm" style={styles.driverCard}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Delivery Partner
@@ -499,7 +458,7 @@ const OrderTrackingScreen: React.FC = () => {
         )}
 
         {/* Delivery OTP — shown when order is OUT_FOR_DELIVERY so customer can share with driver */}
-        {order.orderType === 'DELIVERY' && currentStatus === 'DISPATCHED' && order.deliveryOtp && (
+        {order.orderType === 'DELIVERY' && isDeliveryOnTheWay(currentStatus) && order.deliveryOtp && (
           <Card elevation="sm" style={styles.otpCard}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
               Your Delivery OTP
