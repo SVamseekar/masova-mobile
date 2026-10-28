@@ -65,11 +65,11 @@ npm run build:android
 
 ## Documentation Set
 
-- [Architecture & System Map](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/ARCHITECTURE.md)
-- [API Contract Reference](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/API_CONTRACT.md)
-- [Environments & Setup](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/ENVIRONMENTS.md)
-- [Testing & Quality Gates](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/TESTING.md)
-- [Security Baseline](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/SECURITY.md)
-- [Support Runbook](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/RUNBOOK.md)
-- [Release Guide](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/RELEASE.md)
-- [Contributing Guidelines](file:///Users/souravamseekarmarti/Projects/masova-mobile/CONTRIBUTING.md)
+- [Architecture & System Map](docs/ARCHITECTURE.md)
+- [API Contract Reference](docs/API_CONTRACT.md)
+- [Environments & Setup](docs/ENVIRONMENTS.md)
+- [Testing & Quality Gates](docs/TESTING.md)
+- [Security Baseline](docs/SECURITY.md)
+- [Support Runbook](docs/RUNBOOK.md)
+- [Release Guide](docs/RELEASE.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
