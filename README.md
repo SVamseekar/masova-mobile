@@ -33,7 +33,7 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Default backend development gateway: `http://192.168.50.88:8080/api` (Dell host).
+Default backend development gateway: `http://localhost:8080/api` (Dell host).
 
 ### 3. Development Commands
 
@@ -65,11 +65,11 @@ npm run build:android
 
 ## Documentation Set
 
-- [Architecture & System Map](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/ARCHITECTURE.md)
-- [API Contract Reference](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/API_CONTRACT.md)
-- [Environments & Setup](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/ENVIRONMENTS.md)
-- [Testing & Quality Gates](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/TESTING.md)
-- [Security Baseline](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/SECURITY.md)
-- [Support Runbook](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/RUNBOOK.md)
-- [Release Guide](file:///Users/souravamseekarmarti/Projects/masova-mobile/docs/RELEASE.md)
-- [Contributing Guidelines](file:///Users/souravamseekarmarti/Projects/masova-mobile/CONTRIBUTING.md)
+- [Architecture & System Map](file://docs/ARCHITECTURE.md)
+- [API Contract Reference](file://docs/API_CONTRACT.md)
+- [Environments & Setup](file://docs/ENVIRONMENTS.md)
+- [Testing & Quality Gates](file://docs/TESTING.md)
+- [Security Baseline](file://docs/SECURITY.md)
+- [Support Runbook](file://docs/RUNBOOK.md)
+- [Release Guide](file://docs/RELEASE.md)
+- [Contributing Guidelines](file://CONTRIBUTING.md)

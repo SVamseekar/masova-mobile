@@ -18,9 +18,9 @@
 
 | Check | Command / URL |
 |-------|----------------|
-| Gateway health | `http://192.168.50.88:8080/actuator/health` (or staging equivalent) |
-| API base (dev) | `http://192.168.50.88:8080/api` |
-| WS base (dev) | `ws://192.168.50.88:8080/api/ws` |
+| Gateway health | `http://localhost:8080/actuator/health` (or staging equivalent) |
+| API base (dev) | `http://localhost:8080/api` |
+| WS base (dev) | `ws://localhost:8080/api/ws` |
 | Mobile smoke (Dell) | `npm run smoke:dell` |
 | Quality gates | `npm run typecheck && npm run lint && npm test` |
 

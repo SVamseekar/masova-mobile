@@ -84,32 +84,32 @@ maestro test .maestro/smoke.yaml
 
 ## 3. Staging / Dell Gateway API Smoke Test Script
 
-The smoke test script validates core gateway routes against the live Dell staging server (`http://192.168.50.88:8080/api`).
+The smoke test script validates core gateway routes against the live Dell staging server (`http://localhost:8080/api`).
 
 ### Execution via NPM Script
 
 ```bash
-# Run Staging Smoke Test against default gateway (192.168.50.88:8080)
+# Run Staging Smoke Test against default gateway (localhost:8080)
 npm run smoke:dell
 
 # Run against custom API base URL
-node scripts/dell-smoke-test.js http://192.168.50.88:8080/api
+node scripts/dell-smoke-test.js http://localhost:8080/api
 ```
 
 ### Direct `curl` Verification Commands
 
 ```bash
 # 1. Store Service Health & Store List
-curl -s http://192.168.50.88:8080/api/stores
+curl -s http://localhost:8080/api/stores
 
 # 2. Store Details & Operating Config
-curl -s http://192.168.50.88:8080/api/stores/DOM001
+curl -s http://localhost:8080/api/stores/DOM001
 
 # 3. Menu Service Items Endpoint
-curl -s http://192.168.50.88:8080/api/menu
+curl -s http://localhost:8080/api/menu
 
 # 4. Auth Service Gateway Route Verification
-curl -s -X POST http://192.168.50.88:8080/api/auth/login \
+curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"customer@masova.com","password":"Password123!"}'
 ```
