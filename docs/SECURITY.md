@@ -53,7 +53,7 @@ Canonical contract: `docs/API_CONTRACT.md` + platform `GatewayConfig.java`.
 **Implementation status:** Config + documentation only (`src/config/certificatePinning.ts`). Mode is `disabled`; pin arrays are empty until ops publishes SPKI hashes.
 
 ### Why deferred
-1. Dev/Dell uses **HTTP** (`http://localhost:8080/api`) — TLS pinning does not apply.
+1. Local dev uses **HTTP** (`http://localhost:8080/api`) — TLS pinning does not apply.
 2. Production hostname and cert chain must be stable (leaf + backup intermediate).
 3. Enforcing a wrong pin **bricks** the app until a store update; need report-only soak + remote kill-switch.
 

@@ -13,5 +13,5 @@
 1. Connect Samsung Galaxy Z Flip 5 over USB with USB Debugging enabled.
 2. Verify `adb devices` shows the device connected.
 3. Run `adb reverse tcp:8888 tcp:8888` to route device port 8888 to Metro on Mac.
-4. Ensure Dell server (`localhost:8080`) is reachable on local network.
+4. Ensure the backend gateway (`localhost:8080`, or your `API_BASE_URL`) is reachable from the device.
 5. Launch app using `npm run android`.

@@ -33,7 +33,7 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Default backend development gateway: `http://localhost:8080/api` (Dell host).
+Default backend development gateway: `http://localhost:8080/api` (local backend).
 
 ### 3. Development Commands
 
@@ -65,11 +65,11 @@ npm run build:android
 
 ## Documentation Set
 
-- [Architecture & System Map](file://docs/ARCHITECTURE.md)
-- [API Contract Reference](file://docs/API_CONTRACT.md)
-- [Environments & Setup](file://docs/ENVIRONMENTS.md)
-- [Testing & Quality Gates](file://docs/TESTING.md)
-- [Security Baseline](file://docs/SECURITY.md)
-- [Support Runbook](file://docs/RUNBOOK.md)
-- [Release Guide](file://docs/RELEASE.md)
-- [Contributing Guidelines](file://CONTRIBUTING.md)
+- [Architecture & System Map](docs/ARCHITECTURE.md)
+- [API Contract Reference](docs/API_CONTRACT.md)
+- [Environments & Setup](docs/ENVIRONMENTS.md)
+- [Testing & Quality Gates](docs/TESTING.md)
+- [Security Baseline](docs/SECURITY.md)
+- [Support Runbook](docs/RUNBOOK.md)
+- [Release Guide](docs/RELEASE.md)
+- [Contributing Guidelines](CONTRIBUTING.md)

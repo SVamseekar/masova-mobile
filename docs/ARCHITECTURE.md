@@ -14,7 +14,7 @@
                             │   X-User-Type, X-Selected-Store-Id
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  API Gateway :8080  (Dell localhost in dev)             │
+│  API Gateway :8080  (localhost in dev)                  │
 │  Rate limits · JWT filter · route deny                      │
 └───┬──────────┬──────────┬──────────┬──────────┬─────────────┘
     │          │          │          │          │
