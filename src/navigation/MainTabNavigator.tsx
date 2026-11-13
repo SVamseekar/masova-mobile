@@ -8,7 +8,7 @@ import { MainTabParamList } from '../types';
 import { useTheme } from '../hooks/useTheme';
 
 import HomeScreen from '../screens/home/HomeScreen';
-import SearchScreen from '../screens/home/SearchScreen';
+import MenuScreen from '../screens/menu/MenuScreen';
 import OrderHistoryScreen from '../screens/order/OrderHistoryScreen';
 import SavedScreen from '../screens/profile/SavedScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
@@ -16,7 +16,7 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabNavigator: React.FC = () => {
-  const { isDark } = useTheme();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -24,8 +24,8 @@ const MainTabNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
-          borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          backgroundColor: theme.colors.surface1,
+          borderTopColor: theme.colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
           height: 56 + insets.bottom,
           paddingBottom: insets.bottom,
@@ -33,8 +33,8 @@ const MainTabNavigator: React.FC = () => {
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: isDark ? '#FFD000' : '#0F0F0F',
-        tabBarInactiveTintColor: '#606060',
+        tabBarActiveTintColor: theme.colors.accent,
+        tabBarInactiveTintColor: theme.colors.text2,
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: 'PlusJakartaSans-Medium',
@@ -53,10 +53,11 @@ const MainTabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Search"
-        component={SearchScreen}
+        component={MenuScreen}
         options={{
+          title: 'Menu',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'search' : 'search-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'restaurant' : 'restaurant-outline'} size={24} color={color} />
           ),
         }}
       />

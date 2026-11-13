@@ -32,14 +32,17 @@ const Chip: React.FC<ChipProps> = ({
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected, disabled }}
       onPress={handlePress}
       disabled={disabled}
       activeOpacity={0.8}
       style={[
         styles.container,
         {
-          backgroundColor: selected ? '#FFD000' : theme.colors.surface2,
-          borderColor: selected ? '#FFD000' : theme.colors.border,
+          backgroundColor: selected ? theme.colors.selection : theme.colors.surface1,
+          borderColor: theme.colors.border,
           opacity: disabled ? 0.5 : 1,
         },
         style,
@@ -50,7 +53,7 @@ const Chip: React.FC<ChipProps> = ({
         style={[
           styles.label,
           {
-            color: selected ? '#000000' : theme.colors.text2,
+            color: selected ? theme.colors.text1 : theme.colors.text2,
             marginLeft: icon ? spacing.xs : 0,
           },
         ]}
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 36,
+    minHeight: 48,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.chip,
     borderWidth: StyleSheet.hairlineWidth,

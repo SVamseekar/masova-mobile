@@ -9,6 +9,7 @@ import { NavigationContainer, NavigationContainerRef } from '@react-navigation/n
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { RootStackParamList } from '../types';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -45,6 +46,7 @@ interface RootNavigatorProps {}
 const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, RootNavigatorProps>(
   (_props, ref) => {
     const { theme } = useTheme();
+    const reduced = useReducedMotion();
     const { isLoading } = useAuth();
 
     // Show loading screen while checking auth status
@@ -62,7 +64,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
-          animation: 'slide_from_right',
+          animation: reduced ? 'none' : 'slide_from_right',
         }}
       >
         {/* Main app screens - available to all users (guest and authenticated) */}
@@ -71,7 +73,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="ItemDetail"
           component={ItemDetailScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />
@@ -79,7 +81,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="Cart"
           component={CartScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />
@@ -87,7 +89,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="CheckoutOptions"
           component={CheckoutOptionsScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />
@@ -97,7 +99,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="Search"
           component={SearchScreen}
           options={{
-            animation: 'fade',
+            animation: reduced ? 'none' : 'fade',
           }}
         />
 
@@ -106,7 +108,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="Auth"
           component={AuthNavigator}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />
@@ -133,7 +135,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="OrderTracking"
           component={OrderTrackingScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'fullScreenModal',
           }}
         />
@@ -143,7 +145,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="OrderReview"
           component={OrderReviewScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />
@@ -155,7 +157,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="AddAddress"
           component={AddAddressScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />
@@ -164,7 +166,7 @@ const RootNavigator = forwardRef<NavigationContainerRef<RootStackParamList>, Roo
           name="Chat"
           component={ChatScreen}
           options={{
-            animation: 'slide_from_bottom',
+            animation: reduced ? 'none' : 'slide_from_bottom',
             presentation: 'modal',
           }}
         />

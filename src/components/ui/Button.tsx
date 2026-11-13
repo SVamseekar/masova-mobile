@@ -38,7 +38,7 @@ const Button: React.FC<ButtonProps> = ({
   accessibilityLabel,
   accessibilityRole = 'button',
 }) => {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
   const handlePress = () => {
     if (!disabled && !loading) {
@@ -50,7 +50,7 @@ const Button: React.FC<ButtonProps> = ({
   const sizeStyles: { container: ViewStyle; text: TextStyle } = (() => {
     switch (size) {
       case 'sm': return {
-        container: { paddingVertical: 8, paddingHorizontal: 16, minHeight: 36 },
+        container: { paddingVertical: 8, paddingHorizontal: 16, minHeight: 48 },
         text: { fontSize: 13, lineHeight: 18 },
       };
       case 'lg': return {
@@ -71,16 +71,16 @@ const Button: React.FC<ButtonProps> = ({
     };
     switch (variant) {
       case 'primary': return {
-        container: { backgroundColor: '#FFD000' },
-        text: { color: '#000000' },
+        container: { backgroundColor: theme.colors.accent },
+        text: { color: theme.colors.onAccent },
       };
       case 'secondary': return {
         container: {
           backgroundColor: 'transparent',
           borderWidth: 1.5,
-          borderColor: '#FFD000',
+          borderColor: theme.colors.border,
         },
-        text: { color: isDark ? '#FFD000' : '#0F0F0F' },
+        text: { color: theme.colors.text1 },
       };
       case 'ghost': return {
         container: { backgroundColor: 'transparent' },

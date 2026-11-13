@@ -98,7 +98,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     variant?: MenuVariant,
     customizations?: Map<string, CustomizationOption[]>
   ): number => {
-    let price = menuItem.discountedPrice || menuItem.basePrice;
+    let price = menuItem.discountedPrice ?? menuItem.basePrice;
 
     // Add variant price
     if (variant?.priceModifier) {
@@ -122,7 +122,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const generateCartItemId = (
     menuItem: MenuItem,
     variant?: MenuVariant,
-    customizations?: Map<string, CustomizationOption[]>
+    customizations?: Map<string, CustomizationOption[]>,
+    specialInstructions?: string
   ): string => {
     // Create unique ID based on menu item + variant + customizations
     let id = menuItem.id;
@@ -141,6 +142,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       id += `_c${customizationIds.sort().join('_')}`;
     }
 
+    if (specialInstructions?.trim()) id += `_n${encodeURIComponent(specialInstructions.trim())}`;
     return id;
   };
 
@@ -152,7 +154,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     specialInstructions?: string
   ) => {
     const itemPrice = calculateItemPrice(menuItem, variant, customizations);
-    const cartItemId = generateCartItemId(menuItem, variant, customizations);
+    const cartItemId = generateCartItemId(menuItem, variant, customizations, specialInstructions);
 
     setItems((currentItems) => {
       // Check if item with same configuration already exists
@@ -161,7 +163,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       if (existingItemIndex !== -1) {
         // Update quantity of existing item
         const updatedItems = [...currentItems];
-        const existingItem = updatedItems[existingItemIndex];
+        const existingItem = { ...updatedItems[existingItemIndex] };
+        updatedItems[existingItemIndex] = existingItem;
+        existingItem.menuItem = menuItem;
+        existingItem.selectedVariant = variant;
+        existingItem.selectedCustomizations = customizations;
         existingItem.quantity += quantity;
         existingItem.itemTotal = itemPrice * existingItem.quantity;
         return updatedItems;

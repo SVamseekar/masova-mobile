@@ -90,6 +90,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['menu'] });
     } catch (err) {
       console.error('Failed to save selected store:', err);
+      throw err;
     }
   }, [queryClient]);
 

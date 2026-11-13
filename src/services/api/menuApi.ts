@@ -1,5 +1,5 @@
 import httpClient from '../http/client';
-import { MenuItem, Category, Cuisine, DietaryType } from '../../types';
+import { MenuItem, MenuVariant, MenuCustomization, Category, Cuisine, DietaryType } from '../../types';
 import { resolveMenuImageUrl } from '../../utils/menuDisplay';
 import { CONFIG } from '../../config';
 
@@ -29,6 +29,30 @@ function absolutizeMediaUrl(url: string | undefined): string {
   return `${base}/${url}`;
 }
 
+type ServerExtra = { name: string; price: number; category?: string; isAvailable?: boolean | null };
+
+/** The server stores extras as a flat name-based list; native controls use optional groups. */
+function nativeCustomizations(values: Array<MenuCustomization | ServerExtra>): MenuCustomization[] {
+  const groups = new Map<string, MenuCustomization>();
+  for (const value of values) {
+    if ('options' in value) {
+      groups.set(value.id || value.name, { ...value, id: value.id || value.name,
+        options: value.options.map(option => ({ ...option, id: option.id || option.name })) });
+      continue;
+    }
+    const category = value.category || 'Extras';
+    let group = groups.get(category);
+    if (!group) {
+      group = { id: category, name: category, required: false, maxSelections: 0, options: [] };
+      groups.set(category, group);
+    }
+    group.options.push({ id: value.name, name: value.name, priceModifier: value.price ?? 0,
+      isAvailable: value.isAvailable });
+    group.maxSelections = group.options.length;
+  }
+  return [...groups.values()];
+}
+
 const mapMenuItem = (item: any): MenuItem => {
   const rawImage = resolveMenuImageUrl(item);
   return {
@@ -39,6 +63,9 @@ const mapMenuItem = (item: any): MenuItem => {
     imageUrl: absolutizeMediaUrl(rawImage || item.imageUrl || ''),
     isRecommended: item.isRecommended ?? item.recommended ?? false,
     isAvailable: item.isAvailable !== false && item.available !== false,
+    ...(Array.isArray(item.variants) ? { variants: item.variants.map((variant: MenuVariant) =>
+      ({ ...variant, id: variant.id || variant.name, priceModifier: variant.priceModifier ?? 0 })) } : {}),
+    ...(Array.isArray(item.customizations) ? { customizations: nativeCustomizations(item.customizations) } : {}),
   };
 };
 

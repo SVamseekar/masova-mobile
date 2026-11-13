@@ -1,481 +1,262 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { storeApi } from '../services/api';
 import { Store } from '../types';
 import { useTheme } from '../hooks/useTheme';
 import { useStoreContext } from '../contexts/StoreContext';
 import { useCart } from '../contexts/CartContext';
-import { isFeatureEnabled } from '../config/featureFlags';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { formatPrice } from '../utils/money';
+import { BottomSheet } from './ui/BottomSheet';
+import { Button } from './ui';
 
-interface StoreSelectorProps {
-  onStoreChange?: (store: Store | null) => void;
-}
-
-export const StoreSelector: React.FC<StoreSelectorProps> = ({ onStoreChange }) => {
+export const StoreSelector: React.FC<{ onStoreChange?: (store: Store | null) => void }> = ({
+  onStoreChange,
+}) => {
   const { theme } = useTheme();
-  const { selectedStore, setSelectedStore: setContextStore } = useStoreContext();
+  const { selectedStore, setSelectedStore } = useStoreContext();
   const { itemCount, clearCart } = useCart();
+  const { isOffline } = useNetworkStatus();
   const [stores, setStores] = useState<Store[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Safety check - if theme is not loaded yet, return null
-  if (!theme?.colors) {
-    return null;
-  }
-
-  // Fetch stores when modal opens
-  useEffect(() => {
-    if (isOpen && stores.length === 0) {
-      fetchStores();
-    }
-  }, [isOpen]);
-
-  const fetchStores = async () => {
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [error, setError] = useState<string>();
+  const [draft, setDraft] = useState<Store | null>(null);
+  const [query, setQuery] = useState('');
+  const alive = useRef(true);
+  useEffect(
+    () => () => {
+      alive.current = false;
+    },
+    [],
+  );
+  const key = (store: Store | null) => store?.storeCode || store?.id;
+  const address = (store: Store) =>
+    typeof store.address === 'string'
+      ? store.address
+      : [store.address?.street, store.address?.city, store.address?.state, store.address?.pincode]
+          .filter(Boolean)
+          .join(', ');
+  const load = async () => {
     setLoading(true);
-    setError(null);
+    setError(undefined);
     try {
       const data = await storeApi.getAll();
-      setStores(data);
-    } catch (err) {
-      console.error('Failed to fetch stores:', err);
-      setError('Failed to load stores');
+      if (alive.current) setStores(Array.isArray(data) ? data : []);
+    } catch {
+      if (alive.current) setError('Could not load stores. Check your connection and retry.');
     } finally {
-      setLoading(false);
+      if (alive.current) setLoading(false);
     }
   };
-
-  const performStoreSelect = async (store: Store) => {
+  const choose = async () => {
+    if (!draft || savingRef.current || isOffline) return;
+    savingRef.current = true;
+    setSaving(true);
+    setError(undefined);
+    const changesStore = key(selectedStore) !== key(draft);
     try {
-      await setContextStore(store);
-      onStoreChange?.(store);
-      setIsOpen(false);
-    } catch (err) {
-      console.error('Failed to save selected store:', err);
+      await setSelectedStore(draft);
+      if (changesStore && itemCount) clearCart();
+      onStoreChange?.(draft);
+      if (alive.current) setOpen(false);
+    } catch {
+      if (alive.current)
+        setError('Could not save your store. Your store and cart have not changed. Retry.');
+    } finally {
+      savingRef.current = false;
+      if (alive.current) setSaving(false);
     }
   };
-
-  const handleStoreSelect = async (store: Store) => {
-    const strictGuard = isFeatureEnabled('ENABLE_STRICT_STORE_GUARD');
-    if (
-      strictGuard &&
-      selectedStore &&
-      (selectedStore.storeCode || selectedStore.id) !== (store.storeCode || store.id) &&
-      itemCount > 0
-    ) {
-      Alert.alert(
-        'Switch Store?',
-        'Your cart contains items from your current store. Switching stores will clear your cart. Do you want to proceed?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Clear Cart & Switch',
-            style: 'destructive',
-            onPress: async () => {
-              clearCart();
-              await performStoreSelect(store);
-            },
-          },
-        ]
-      );
-      return;
-    }
-    // When guard is off, still clear cart on store change so prices/items stay store-scoped
-    if (
-      selectedStore &&
-      (selectedStore.storeCode || selectedStore.id) !== (store.storeCode || store.id) &&
-      itemCount > 0
-    ) {
-      clearCart();
-    }
-    await performStoreSelect(store);
-  };
-
-  const getStoreLocation = (store: Store) => {
-    // Extract city from address object
-    if (typeof store.address === 'object' && store.address !== null) {
-      return store.address.city || store.address.state || 'Unknown';
-    }
-    // Fallback for string address (legacy)
-    const addressStr = String(store.address);
-    const parts = addressStr.split(',');
-    return parts.length > 1 ? parts[parts.length - 2].trim() : addressStr;
-  };
-
-  const formatStoreAddress = (address: Store['address']) => {
-    if (typeof address === 'object' && address !== null) {
-      const parts = [address.street, address.city, address.state, address.pincode].filter(Boolean);
-      return parts.join(', ');
-    }
-    return String(address);
-  };
-
+  const filtered = stores.filter((store) =>
+    `${store.name} ${address(store)}`.toLowerCase().includes(query.trim().toLowerCase()),
+  );
   return (
     <View>
-      {/* Store Selector Button */}
-      <TouchableOpacity
-        style={[styles.selectorButton, { backgroundColor: theme.colors.surface }]}
-        onPress={() => setIsOpen(true)}
-        activeOpacity={0.7}
+      <Pressable
+        style={styles.selector}
+        accessibilityRole="button"
+        accessibilityLabel={`Select store. ${selectedStore?.name ?? 'No store selected'}`}
+        onPress={() => {
+          setDraft(selectedStore);
+          setQuery('');
+          setOpen(true);
+          void load();
+        }}
       >
-        <View style={styles.buttonContent}>
-          <Ionicons name="location" size={20} color={'#FFD000'} />
-          <View style={styles.storeInfo}>
-            <Text style={[styles.storeName, { color: theme.colors.text1 }]} numberOfLines={1}>
-              {selectedStore ? selectedStore.name : 'Select Store'}
+        <Ionicons name="storefront-outline" size={22} color={theme.colors.text1} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.name, { color: theme.colors.text1 }]}>
+            {selectedStore?.name ?? 'Select store'}
+          </Text>
+          {selectedStore && (
+            <Text style={[styles.meta, { color: theme.colors.text2 }]}>
+              {selectedStore.address?.city} · {selectedStore.currency}
             </Text>
-            {selectedStore && (
-              <Text style={[styles.storeLocation, { color: theme.colors.text2 }]} numberOfLines={1}>
-                {getStoreLocation(selectedStore)}
+          )}
+        </View>
+        <Ionicons name="chevron-down" size={20} color={theme.colors.text2} />
+      </Pressable>
+      <BottomSheet
+        visible={open}
+        title="Select store"
+        onClose={() => {
+          if (!saving) setOpen(false);
+        }}
+        footer={
+          <>
+            {key(draft) !== key(selectedStore) && itemCount > 0 && (
+              <Text
+                style={[
+                  styles.warning,
+                  { color: theme.colors.text1, backgroundColor: theme.colors.selection },
+                ]}
+              >
+                Switching store will clear your cart. {itemCount}{' '}
+                {itemCount === 1 ? 'item' : 'items'} will be removed.
               </Text>
             )}
-          </View>
-          <Ionicons
-            name={isOpen ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={theme.colors.text2}
-          />
-        </View>
-      </TouchableOpacity>
-
-      {/* Store Selection Modal */}
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsOpen(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.bg }]}>
-            {/* Header */}
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text1 }]}>
-                Select Store
+            {error && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[styles.meta, { color: theme.colors.error }]}
+              >
+                {error}
               </Text>
-              <TouchableOpacity onPress={() => setIsOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={28} color={theme.colors.text1} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Store List */}
-            <ScrollView style={styles.storeList} showsVerticalScrollIndicator={false}>
-              {loading ? (
-                <View style={styles.centerContent}>
-                  <ActivityIndicator size="large" color={'#FFD000'} />
-                  <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
-                    Loading stores...
-                  </Text>
-                </View>
-              ) : error ? (
-                <View style={styles.centerContent}>
-                  <Ionicons name="alert-circle" size={48} color={theme.colors.semantic.error} />
-                  <Text style={[styles.errorText, { color: theme.colors.semantic.error }]}>
-                    {error}
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.retryButton, { backgroundColor: '#FFD000' }]}
-                    onPress={fetchStores}
-                  >
-                    <Text style={styles.retryButtonText}>Retry</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : stores.length === 0 ? (
-                <View style={styles.centerContent}>
-                  <Ionicons name="storefront-outline" size={48} color={theme.colors.text3} />
-                  <Text style={[styles.emptyText, { color: theme.colors.text2 }]}>
-                    No stores available
-                  </Text>
-                </View>
-              ) : (
-                stores.map((store) => {
-                  const storeKey = store.storeCode || store.id;
-                  const selectedKey = selectedStore?.storeCode || selectedStore?.id;
-                  const isSelected = !!storeKey && storeKey === selectedKey;
-                  return (
-                    <TouchableOpacity
-                      key={store.id}
-                      style={[
-                        styles.storeItem,
-                        {
-                          backgroundColor: isSelected
-                            ? `${'#FFD000'}15`
-                            : theme.colors.surface1,
-                          borderColor: isSelected
-                            ? '#FFD000'
-                            : theme.colors.border,
-                        },
-                      ]}
-                      onPress={() => handleStoreSelect(store)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.storeItemLeft}>
-                        <View style={styles.storeItemHeader}>
-                          <Text
-                            style={[
-                              styles.storeItemName,
-                              {
-                                color: isSelected
-                                  ? '#FFD000'
-                                  : theme.colors.text1,
-                              },
-                            ]}
-                          >
-                            {store.name}
-                          </Text>
-                          {store.isOpen ? (
-                            <View
-                              style={[
-                                styles.statusBadge,
-                                { backgroundColor: `${theme.colors.semantic.success}20` },
-                              ]}
-                            >
-                              <View
-                                style={[
-                                  styles.statusDot,
-                                  { backgroundColor: theme.colors.semantic.success },
-                                ]}
-                              />
-                              <Text
-                                style={[
-                                  styles.statusText,
-                                  { color: theme.colors.semantic.success },
-                                ]}
-                              >
-                                Open
-                              </Text>
-                            </View>
-                          ) : (
-                            <View
-                              style={[
-                                styles.statusBadge,
-                                { backgroundColor: `${theme.colors.semantic.error}20` },
-                              ]}
-                            >
-                              <View
-                                style={[
-                                  styles.statusDot,
-                                  { backgroundColor: theme.colors.semantic.error },
-                                ]}
-                              />
-                              <Text
-                                style={[
-                                  styles.statusText,
-                                  { color: theme.colors.semantic.error },
-                                ]}
-                              >
-                                Closed
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text
-                          style={[styles.storeItemAddress, { color: theme.colors.text2 }]}
-                          numberOfLines={2}
-                        >
-                          {formatStoreAddress(store.address)}
-                        </Text>
-                        <View style={styles.storeItemFooter}>
-                          <View style={styles.infoItem}>
-                            <Ionicons
-                              name="time-outline"
-                              size={14}
-                              color={theme.colors.text3}
-                            />
-                            <Text
-                              style={[styles.infoText, { color: theme.colors.text3 }]}
-                            >
-                              {store.openingTime} - {store.closingTime}
-                            </Text>
-                          </View>
-                          <View style={styles.infoItem}>
-                            <Ionicons
-                              name="bicycle-outline"
-                              size={14}
-                              color={theme.colors.text3}
-                            />
-                            <Text
-                              style={[styles.infoText, { color: theme.colors.text3 }]}
-                            >
-                              {formatPrice(
-                                store.deliveryFee,
-                                store.currency || selectedStore?.currency
-                              )}{' '}
-                              delivery
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                      {isSelected && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={28}
-                          color={'#FFD000'}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </ScrollView>
+            )}
+            {isOffline && (
+              <Text style={[styles.meta, { color: theme.colors.error }]}>
+                Connect before switching stores.
+              </Text>
+            )}
+            <Button
+              title={draft ? `Choose ${draft.name}` : 'Choose a store'}
+              disabled={
+                !draft ||
+                loading ||
+                saving ||
+                isOffline ||
+                draft.status === 'INACTIVE' ||
+                draft.status === 'MAINTENANCE'
+              }
+              loading={saving}
+              fullWidth
+              onPress={() => {
+                void choose();
+              }}
+            />
+          </>
+        }
+      >
+        <Text style={[styles.body, { color: theme.colors.text2 }]}>
+          Choose a store to see its menu and prices.
+        </Text>
+        <TextInput
+          accessibilityLabel="Search stores by area or address"
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search by area or address"
+          placeholderTextColor={theme.colors.text2}
+          style={[styles.search, { color: theme.colors.text1, borderColor: theme.colors.border }]}
+        />
+        {loading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={theme.colors.accent} />
+            <Text style={{ color: theme.colors.text2 }}>Loading stores…</Text>
           </View>
-        </View>
-      </Modal>
+        ) : error && !stores.length ? (
+          <Button
+            title="Retry"
+            onPress={() => {
+              void load();
+            }}
+          />
+        ) : !filtered.length ? (
+          <View style={styles.loading}>
+            <Text style={{ color: theme.colors.text2 }}>
+              {stores.length ? 'No stores match your search.' : 'No stores available.'}
+            </Text>
+            <Button
+              title={stores.length ? 'Clear search' : 'Retry'}
+              onPress={() => {
+                if (stores.length) setQuery('');
+                else void load();
+              }}
+            />
+          </View>
+        ) : (
+          filtered.map((store) => {
+            const selected = key(draft) === key(store);
+            const inactive = store.status === 'INACTIVE' || store.status === 'MAINTENANCE';
+            const openingStatus = inactive ? 'Unavailable' : store.isOpen === true ? 'Open' : store.isOpen === false ? 'Closed' : 'Opening status unavailable';
+            return (
+              <Pressable
+                key={key(store)}
+                onPress={() => setDraft(store)}
+                disabled={saving || inactive}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected, disabled: saving || inactive }}
+                accessibilityLabel={`${store.name}, ${openingStatus}, ${store.currency ?? 'currency not configured'}`}
+                style={[
+                  styles.store,
+                  {
+                    backgroundColor: selected ? theme.colors.selection : theme.colors.surface1,
+                    borderColor: theme.colors.border,
+                    opacity: inactive ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Text style={[styles.name, { color: theme.colors.text1 }]}>{store.name}</Text>
+                  <Text
+                    style={[
+                      styles.meta,
+                      { color: store.isOpen ? theme.colors.success : theme.colors.text2 },
+                    ]}
+                  >
+                    {openingStatus} ·{' '}
+                    {store.currency ?? 'Currency unavailable'}
+                  </Text>
+                  <Text style={[styles.meta, { color: theme.colors.text2 }]}>{address(store)}</Text>
+                  <Text style={[styles.meta, { color: theme.colors.text2 }]}>
+                    {store.openingTime && store.closingTime
+                      ? `${store.openingTime}–${store.closingTime} · `
+                      : ''}
+                    {store.currency && store.deliveryFee != null
+                      ? `${formatPrice(store.deliveryFee, store.currency, store.locale)} delivery`
+                      : 'Delivery fee confirmed at checkout'}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={selected ? 'radio-button-on' : 'radio-button-off'}
+                  size={24}
+                  color={theme.colors.text1}
+                />
+              </Pressable>
+            );
+          })
+        )}
+      </BottomSheet>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
-  selectorButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+  selector: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  name: { fontSize: 16, fontWeight: '600' },
+  body: { fontSize: 16, lineHeight: 24 },
+  meta: { fontSize: 13, lineHeight: 19 },
+  search: { borderWidth: 1, borderRadius: 8, minHeight: 48, paddingHorizontal: 12, fontSize: 16 },
+  loading: { paddingVertical: 24, alignItems: 'center', gap: 12 },
+  store: {
+    borderWidth: 1,
     borderRadius: 12,
-    minHeight: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  buttonContent: {
+    padding: 12,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  storeInfo: {
-    flex: 1,
-  },
-  storeName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  storeLocation: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  storeList: {
-    padding: 16,
-  },
-  centerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
     gap: 12,
-  },
-  loadingText: {
-    fontSize: 16,
-  },
-  errorText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  storeItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    gap: 12,
   },
-  storeItemLeft: {
-    flex: 1,
-  },
-  storeItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  storeItemName: {
-    fontSize: 16,
-    fontWeight: '700',
-    flex: 1,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    gap: 4,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  storeItemAddress: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  storeItemFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  infoText: {
-    fontSize: 12,
-  },
+  warning: { padding: 12, fontSize: 14, lineHeight: 20, borderRadius: 8 },
 });

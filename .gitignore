@@ -51,3 +51,6 @@ CLAUDE.md
 .grok/
 .mcp.json
 .superpowers/
+
+# Local-only Mac development Babel endpoint override
+.babelrc.js

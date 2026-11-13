@@ -204,6 +204,7 @@ export interface MenuVariant {
   id: string;
   name: string;
   priceModifier: number;
+  isAvailable?: boolean | null;
 }
 
 export interface MenuCustomization {
@@ -218,6 +219,7 @@ export interface CustomizationOption {
   id: string;
   name: string;
   priceModifier: number;
+  isAvailable?: boolean | null;
 }
 
 export interface NutritionalInfo {
@@ -450,7 +452,8 @@ export interface Store {
   address: StoreAddress;
   phone: string;
   email: string;
-  isOpen: boolean;
+  // Raw public store responses may omit live opening status.
+  isOpen?: boolean;
   status?: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   operatingConfig?: Record<string, any>;
   currency?: string;

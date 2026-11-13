@@ -31,9 +31,9 @@ export const MaSoVaLogo: React.FC<MaSoVaLogoProps> = ({
   if (markOnly || variant === 'mark') {
     return (
       <Image
-        source={require('../../../assets/brand/app-icon.png')}
+        source={require('../../../assets/brand/masova-mark.png')}
         style={{ width: mark + 6, height: mark + 6, borderRadius: 8 } as ImageStyle}
-        resizeMode="cover"
+        resizeMode="contain"
       />
     );
   }
@@ -42,13 +42,13 @@ export const MaSoVaLogo: React.FC<MaSoVaLogoProps> = ({
   return (
     <View style={[styles.container, { gap } as ViewStyle]}>
       <Image
-        source={require('../../../assets/brand/app-icon.png')}
+        source={require('../../../assets/brand/masova-mark.png')}
         style={{ width: mark, height: mark, borderRadius: 7 } as ImageStyle}
-        resizeMode="cover"
+        resizeMode="contain"
       />
       <Text style={[styles.wordmark, { fontSize, color: textColor, letterSpacing: -0.6 }]}>
         <Text style={{ color: textColor }}>Ma</Text>
-        <Text style={{ color: '#FFD000' }}>So</Text>
+        <Text style={{ color: textColor }}>So</Text>
         <Text style={{ color: textColor }}>Va</Text>
       </Text>
     </View>
@@ -58,9 +58,9 @@ export const MaSoVaLogo: React.FC<MaSoVaLogoProps> = ({
 /** Icon-only for launcher-adjacent UI */
 export const MaSoVaAppIcon: React.FC<{ size?: number }> = ({ size = 40 }) => (
   <Image
-    source={require('../../../assets/brand/app-icon.png')}
+    source={require('../../../assets/brand/masova-mark.png')}
     style={{ width: size, height: size, borderRadius: size * 0.22 }}
-    resizeMode="cover"
+    resizeMode="contain"
   />
 );
 

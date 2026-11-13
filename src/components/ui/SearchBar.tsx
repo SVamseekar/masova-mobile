@@ -49,8 +49,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
         styles.container,
         {
           backgroundColor: theme.colors.surface2,
-          borderColor: isFocused ? '#FFD000' : theme.colors.border,
-          borderWidth: isFocused ? 1.5 : StyleSheet.hairlineWidth,
+          borderColor: isFocused ? theme.colors.focus : theme.colors.border,
+          borderWidth: 1,
         },
         style,
       ]}
@@ -62,6 +62,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         style={styles.icon}
       />
       <TextInput
+        accessibilityLabel="Search menu"
         style={[styles.input, { color: theme.colors.text1 }]}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.text3}
@@ -81,7 +82,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         returnKeyType="search"
       />
       {value.length > 0 && (
-        <TouchableOpacity onPress={handleClear} style={styles.iconButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Clear search" onPress={handleClear} style={styles.iconButton}>
           <Ionicons name="close-circle" size={18} color={theme.colors.text3} />
         </TouchableOpacity>
       )}
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 48,
-    borderRadius: borderRadius.pill,
+    borderRadius: 8,
     paddingHorizontal: spacing.lg,
   },
   icon: {
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   iconButton: {
-    padding: spacing.xs,
+    width: 48, height: 48, alignItems: 'center', justifyContent: 'center',
     marginLeft: spacing.sm,
   },
 });

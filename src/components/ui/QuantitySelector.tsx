@@ -12,6 +12,7 @@ import { spacing, borderRadius, typography } from '../../styles';
 
 interface QuantitySelectorProps {
   value: number;
+  disabled?: boolean;
   onChange: (value: number) => void;
   min?: number;
   max?: number;
@@ -21,6 +22,7 @@ interface QuantitySelectorProps {
 
 const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   value,
+  disabled = false,
   onChange,
   min = 1,
   max = 99,
@@ -30,14 +32,14 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   const { theme } = useTheme();
 
   const handleDecrease = () => {
-    if (value > min) {
+    if (value > min && !disabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onChange(value - 1);
     }
   };
 
   const handleIncrease = () => {
-    if (value < max) {
+    if (value < max && !disabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onChange(value + 1);
     }
@@ -47,21 +49,21 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
     switch (size) {
       case 'sm':
         return {
-          buttonSize: 28,
+          buttonSize: 48,
           fontSize: typography.fontSize.bodySm,
           iconSize: 16,
           minWidth: 80,
         };
       case 'lg':
         return {
-          buttonSize: 44,
+          buttonSize: 48,
           fontSize: typography.fontSize.titleSm,
           iconSize: 24,
           minWidth: 120,
         };
       default:
         return {
-          buttonSize: 36,
+          buttonSize: 48,
           fontSize: typography.fontSize.body,
           iconSize: 20,
           minWidth: 100,
@@ -70,8 +72,8 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   };
 
   const sizeStyles = getSizeStyles();
-  const canDecrease = value > min;
-  const canIncrease = value < max;
+  const canDecrease = value > min && !disabled;
+  const canIncrease = value < max && !disabled;
 
   return (
     <View
@@ -85,6 +87,9 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
       ]}
     >
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Decrease quantity"
+        accessibilityState={{ disabled: !canDecrease }}
         onPress={handleDecrease}
         disabled={!canDecrease}
         style={[
@@ -100,7 +105,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
         <Ionicons
           name="remove"
           size={sizeStyles.iconSize}
-          color={canDecrease ? '#FFD000' : theme.colors.text3}
+          color={canDecrease ? theme.colors.text1 : theme.colors.text3}
         />
       </TouchableOpacity>
 
@@ -117,6 +122,9 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
       </Text>
 
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Increase quantity"
+        accessibilityState={{ disabled: !canIncrease }}
         onPress={handleIncrease}
         disabled={!canIncrease}
         style={[
@@ -132,7 +140,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
         <Ionicons
           name="add"
           size={sizeStyles.iconSize}
-          color={canIncrease ? '#FFD000' : theme.colors.text3}
+          color={canIncrease ? theme.colors.text1 : theme.colors.text3}
         />
       </TouchableOpacity>
     </View>

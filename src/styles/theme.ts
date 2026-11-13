@@ -1,4 +1,4 @@
-import { colors, typography, spacing, borderRadius, shadows } from './tokens';
+import { typography, spacing, borderRadius, shadows } from './tokens';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -35,7 +35,9 @@ export interface Theme {
     textInverse: string;
     divider: string;
     overlay: string;
-    semantic: typeof colors.semantic;
+    semantic: { error: string; errorLight: string; success: string; successLight: string; warning: string };
+    selection: string;
+    focus: string;
   };
   typography: typeof typography;
   spacing: typeof spacing;
@@ -45,14 +47,14 @@ export interface Theme {
 
 const buildTheme = (mode: ThemeMode): Theme => {
   const isDark = mode === 'dark';
-  const c = isDark ? colors.dark : colors.light;
+  const c = isDark ? { bg: '#101B17', surface1: '#1A2923', surface2: '#28302C', surface3: '#354139', surface4: '#435148', text1: '#F4F5F0', text2: '#BECBC2', text3: '#BECBC2', border: '#59665D' } : { bg: '#F6F5F1', surface1: '#FFFFFF', surface2: '#ECEEEB', surface3: '#DEDFD8', surface4: '#CDD3CA', text1: '#18221F', text2: '#55635A', text3: '#55635A', border: '#DEDFD8' };
 
   return {
     mode,
     isDark,
     colors: {
-      accent: colors.brand.accent,
-      onAccent: colors.brand.onAccent,
+      accent: '#C63F19',
+      onAccent: '#FFFFFF',
       bg: c.bg,
       surface1: c.surface1,
       surface2: c.surface2,
@@ -62,14 +64,14 @@ const buildTheme = (mode: ThemeMode): Theme => {
       text2: c.text2,
       text3: c.text3,
       border: c.border,
-      error: isDark ? colors.semantic.error : colors.semantic.errorLight,
-      success: isDark ? colors.semantic.success : colors.semantic.successLight,
-      warning: colors.semantic.warning,
+      error: isDark ? '#FFA8A0' : '#AA2424',
+      success: isDark ? '#93D7AC' : '#146342',
+      warning: isDark ? '#FFD28A' : '#7B4700',
       // Legacy aliases
       brand: {
-        primary: colors.brand.accent,
-        primaryLight: colors.brand.accent,
-        primaryDark: colors.brand.accent,
+        primary: '#C63F19',
+        primaryLight: '#C63F19',
+        primaryDark: '#C63F19',
       },
       background: c.bg,
       surface: c.surface1,
@@ -81,10 +83,12 @@ const buildTheme = (mode: ThemeMode): Theme => {
       textPrimary: c.text1,
       textSecondary: c.text2,
       textTertiary: c.text3,
-      textInverse: isDark ? '#000000' : '#FFFFFF',
+      textInverse: '#FFFFFF',
       divider: c.border,
       overlay: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
-      semantic: colors.semantic,
+      semantic: { error: isDark ? '#FFA8A0' : '#AA2424', errorLight: '#AA2424', success: isDark ? '#93D7AC' : '#146342', successLight: '#146342', warning: isDark ? '#FFD28A' : '#7B4700' },
+      selection: c.surface2,
+      focus: isDark ? '#93D7AC' : '#1D5F47',
     },
     typography,
     spacing,

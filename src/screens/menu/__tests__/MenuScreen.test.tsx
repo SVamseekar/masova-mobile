@@ -6,6 +6,8 @@ import * as themeHook from '../../../hooks/useTheme';
 import { lightTheme } from '../../../styles/theme';
 
 jest.mock('../../../hooks/useMenuQueries');
+jest.mock('../../../contexts/CartContext', () => ({ useCart: () => ({ itemCount: 0 }) }));
+jest.mock('../../../hooks/useNetworkStatus', () => ({ useNetworkStatus: () => ({ isOffline: false }) }));
 jest.mock('../../../hooks/useTheme');
 jest.mock('../../../hooks/useSelectedStore', () => ({
   useSelectedStore: () => ({
@@ -23,6 +25,7 @@ jest.mock('../../../hooks/useSelectedStore', () => ({
   }),
 }));
 jest.mock('@react-navigation/native', () => ({
+  useRoute: () => ({ params: {} }),
   useNavigation: () => ({
     navigate: jest.fn(),
   }),
@@ -37,6 +40,8 @@ jest.mock('../../../components/StoreSelector', () => {
 });
 
 describe('MenuScreen Component', () => {
+  let component: ReturnType<typeof renderer.create>;
+  afterEach(async () => { if (component) await act(async () => { component.unmount(); }); });
   const mockRefetch = jest.fn();
 
   beforeEach(() => {
@@ -47,7 +52,7 @@ describe('MenuScreen Component', () => {
     });
   });
 
-  it('renders menu error state with retry button when query fails', () => {
+  it('renders menu error state with retry button when query fails', async () => {
     (menuQueries.useMenuItems as jest.Mock).mockReturnValue({
       data: null,
       isLoading: false,
@@ -56,8 +61,7 @@ describe('MenuScreen Component', () => {
       refetch: mockRefetch,
     });
 
-    let component: any;
-    act(() => {
+    await act(async () => {
       component = renderer.create(<MenuScreen />);
     });
 
@@ -71,7 +75,7 @@ describe('MenuScreen Component', () => {
     expect(retryText).toBeTruthy();
   });
 
-  it('renders empty menu state when no items match filters', () => {
+  it('renders empty menu state when no items match filters', async () => {
     (menuQueries.useMenuItems as jest.Mock).mockReturnValue({
       data: [],
       isLoading: false,
@@ -80,15 +84,14 @@ describe('MenuScreen Component', () => {
       refetch: mockRefetch,
     });
 
-    let component: any;
-    act(() => {
+    await act(async () => {
       component = renderer.create(<MenuScreen />);
     });
 
     const emptyTitle = component.root.findByProps({ children: 'No items found' });
     expect(emptyTitle).toBeTruthy();
 
-    const emptySub = component.root.findByProps({ children: 'Try adjusting your filters or search query' });
+    const emptySub = component.root.findByProps({ children: 'This store has no dishes published yet.' });
     expect(emptySub).toBeTruthy();
   });
 });

@@ -1,867 +1,437 @@
 /**
  * Item Detail Screen
- * Full item view with variants and customizations
+ * Full item view with variants and customizations.
  */
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
   ScrollView,
-  TouchableOpacity,
-  Dimensions,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MenuDishImage } from '../../components/menu/MenuDishImage';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-
-import { CONFIG } from '../../config';
 import { useTheme } from '../../hooks/useTheme';
-import { useMenuItem } from '../../hooks/useMenuQueries';
+import { useMenuItem, useMenuItems } from '../../hooks/useMenuQueries';
 import { useSelectedStore } from '../../hooks/useSelectedStore';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { spacing, borderRadius, typography, shadows } from '../../styles';
-import { Button, Badge, QuantitySelector, Card } from '../../components/ui';
-import { RootStackParamList, MenuItem, MenuVariant, CustomizationOption } from '../../types';
-import { AllergenType, ALLERGEN_LABELS } from '../../constants/allergens';
+import { Button, QuantitySelector } from '../../components/ui';
+import { MenuDishImage } from '../../components/menu/MenuDishImage';
+import { AllergenLabels, CachedMenuNotice, MenuNotice } from '../../components/menu/DiscoveryUI';
+import { toggleOption, validateSelection } from '../../components/menu/menuDiscovery';
+import { CustomizationOption, RootStackParamList } from '../../types';
 import { favoritesService } from '../../services/favoritesService';
-import { formatMenuPrice } from '../../utils/menuDisplay';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const IMAGE_HEIGHT = SCREEN_HEIGHT * 0.4;
-
-// Mock item data (fallback during development)
-const MOCK_ITEM: MenuItem = {
-  id: '1',
-  name: 'Margherita Pizza',
-  description: 'Classic Italian pizza with fresh mozzarella cheese, aromatic basil leaves, and our signature tomato sauce on a perfectly baked thin crust.',
-  cuisine: 'ITALIAN',
-  category: 'PIZZA',
-  basePrice: 34900,
-  discountedPrice: 29900,
-  variants: [
-    { id: 'v1', name: 'Regular (8")', priceModifier: 0 },
-    { id: 'v2', name: 'Large (12")', priceModifier: 10000 },
-    { id: 'v3', name: 'Family (16")', priceModifier: 20000 },
-  ],
-  customizations: [
-    {
-      id: 'c1',
-      name: 'Extra Toppings',
-      required: false,
-      maxSelections: 5,
-      options: [
-        { id: 'o1', name: 'Extra Cheese', priceModifier: 5000 },
-        { id: 'o2', name: 'Jalapenos', priceModifier: 3000 },
-        { id: 'o3', name: 'Olives', priceModifier: 3000 },
-        { id: 'o4', name: 'Mushrooms', priceModifier: 4000 },
-      ],
-    },
-    {
-      id: 'c2',
-      name: 'Crust Type',
-      required: true,
-      maxSelections: 1,
-      options: [
-        { id: 'o5', name: 'Classic Thin', priceModifier: 0 },
-        { id: 'o6', name: 'Pan Crust', priceModifier: 2000 },
-        { id: 'o7', name: 'Cheese Burst', priceModifier: 8000 },
-      ],
-    },
-  ],
-  dietaryInfo: ['VEGETARIAN'],
-  spiceLevel: 'MILD',
-  nutritionalInfo: {
-    calories: 850,
-    protein: 32,
-    carbs: 98,
-    fat: 38,
-  },
-  imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800',
-  isAvailable: true,
-  preparationTime: 25,
-  isRecommended: true,
-  rating: 4.5,
-  reviewCount: 230,
-};
-
-type ItemDetailRouteProp = RouteProp<RootStackParamList, 'ItemDetail'>;
+import { formatCategoryLabel, formatMenuPrice } from '../../utils/menuDisplay';
 
 const ItemDetailScreen: React.FC = () => {
-  const { theme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
-  const route = useRoute<ItemDetailRouteProp>();
-  const { addItem } = useCart();
-  const { selectedStore } = useSelectedStore();
-  const currency = selectedStore?.currency;
-  const locale = selectedStore?.locale;
-
-  // Fetch item from API
-  const { data: item, isLoading, isError, error } = useMenuItem(route.params.itemId);
-
-  // Use API data if available, fallback to mock data only if enabled
-  const menuItem = item || (CONFIG.ENABLE_MOCK_FALLBACK ? MOCK_ITEM : null);
-
-  const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<MenuVariant | null>(
-    menuItem?.variants?.[0] || null
-  );
-  const [selectedOptions, setSelectedOptions] = useState<Map<string, CustomizationOption[]>>(
-    new Map()
-  );
-  const [isFavorite, setIsFavorite] = useState(false);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (menuItem?.id) {
-      favoritesService.isFavorite(menuItem.id).then(setIsFavorite);
-    }
-  }, [menuItem?.id]);
-
-  const formatPrice = (price: number) => formatMenuPrice(price, currency, locale);
-
-  const calculateTotalPrice = () => {
-    if (!menuItem) return 0;
-    // Keep arithmetic in the same units as API (minor when >= 100)
-    let total = menuItem.discountedPrice || menuItem.basePrice;
-
-    if (selectedVariant) {
-      total += selectedVariant.priceModifier;
-    }
-
-    selectedOptions.forEach((options) => {
-      options.forEach((opt) => {
-        total += opt.priceModifier;
-      });
-    });
-
-    return total * quantity;
-  };
-
-  const handleVariantSelect = (variant: MenuVariant) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedVariant(variant);
-  };
-
-  const handleOptionToggle = (customizationId: string, option: CustomizationOption, maxSelections: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const currentOptions = selectedOptions.get(customizationId) || [];
-    const isSelected = currentOptions.some((o) => o.id === option.id);
-
-    let newOptions: CustomizationOption[];
-    if (isSelected) {
-      newOptions = currentOptions.filter((o) => o.id !== option.id);
-    } else {
-      if (maxSelections === 1) {
-        newOptions = [option];
-      } else if (currentOptions.length < maxSelections) {
-        newOptions = [...currentOptions, option];
-      } else {
-        return; // Max selections reached
-      }
-    }
-
-    const newMap = new Map(selectedOptions);
-    newMap.set(customizationId, newOptions);
-    setSelectedOptions(newMap);
-  };
-
-  const handleAddToCart = () => {
-    if (!menuItem) return;
-    addItem(
-      menuItem,
-      quantity,
-      selectedVariant || undefined,
-      selectedOptions
-    );
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // Food-app pattern: land on cart so totals/currency are obvious
-    (navigation as any).navigate('Cart');
-  };
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.bg }]}>
-        <Text style={[styles.loadingText, { color: theme.colors.text2 }]}>
-          Loading item details...
-        </Text>
-      </View>
-    );
-  }
-
-  // Error or Not Found state
-  if (isError || !menuItem) {
-    return (
-      <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.colors.bg }]}>
-        <Ionicons name="alert-circle-outline" size={64} color={theme.colors.semantic.error} />
-        <Text style={[styles.errorTitle, { color: theme.colors.text1 }]}>
-          Failed to load item
-        </Text>
-        <Text style={[styles.errorSubtitle, { color: theme.colors.text2 }]}>
-          {error?.message || 'Item details unavailable. Please try again'}
-        </Text>
-        <Button
-          title="Go Back"
-          onPress={() => navigation.goBack()}
-          style={styles.errorButton}
-        />
-      </View>
-    );
-  }
-
+  const route = useRoute<RouteProp<RootStackParamList, 'ItemDetail'>>();
+  const { selectedStoreId } = useSelectedStore();
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-      {/* Header Image */}
-      <View style={styles.imageContainer}>
-        <MenuDishImage
-          name={menuItem.name}
-          imageUrl={menuItem.imageUrl}
-          style={styles.image}
-        />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent']}
-          style={styles.imageGradient}
-        />
+    <ItemDetail key={`${selectedStoreId}:${route.params.itemId}`} itemId={route.params.itemId} />
+  );
+};
 
-        {/* Header Buttons */}
-        <View style={[styles.headerButtons, { top: insets.top + spacing[2] }]}>
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: theme.colors.surface2 }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="close" size={24} color={theme.colors.text1} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: theme.colors.surface2 }]}
-            onPress={async () => {
-              if (!menuItem) return;
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const nowFav = await favoritesService.toggle(menuItem);
-              setIsFavorite(nowFav);
-              if (user?.id) {
-                void favoritesService.syncToCustomer(user.id);
-              }
-            }}
-            accessibilityLabel={isFavorite ? 'Remove from saved' : 'Save item'}
-          >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFavorite ? '#FFD000' : theme.colors.text1}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
+const ItemDetail: React.FC<{ itemId: string }> = ({ itemId }) => {
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { selectedStore, selectedStoreId } = useSelectedStore();
+  const storeRef = useRef(selectedStoreId);
+  storeRef.current = selectedStoreId;
+  const alive = useRef(true);
+  useEffect(
+    () => () => {
+      alive.current = false;
+    },
+    [],
+  );
+  const { isOffline } = useNetworkStatus();
+  const { user } = useAuth();
+  const { addItem } = useCart();
+  const detail = useMenuItem(itemId);
+  const menu = useMenuItems();
+  const storeItem = menu.data?.find((item) => item.id === itemId);
+  // Store payload owns price and eligibility; global item endpoint cannot establish store membership.
+  const item = storeItem ? { ...detail.data, ...storeItem } : null;
+  const [quantity, setQuantity] = useState(1);
+  const [variantId, setVariantId] = useState<string>();
+  const [options, setOptions] = useState<Map<string, CustomizationOption[]>>(new Map());
+  const [favorite, setFavorite] = useState(false);
+  const [savingFavorite, setSavingFavorite] = useState(false);
+  const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const variant = item?.variants?.find((value) => value.id === variantId);
+  const eligible =
+    !!selectedStoreId &&
+    !!storeItem &&
+    // An omitted opening status is unknown. Checkout owns operational validation;
+    // local cart selection remains available unless the store is explicitly closed.
+    selectedStore?.isOpen !== false &&
+    selectedStore?.status !== 'INACTIVE' &&
+    selectedStore?.status !== 'MAINTENANCE';
+  const selectionError = item ? validateSelection(item, eligible, variant, options) : null;
+  const money = (amount: number) =>
+    formatMenuPrice(amount, selectedStore?.currency, selectedStore?.locale);
+  const estimate = item
+    ? ((item.discountedPrice ?? item.basePrice) +
+        (variant?.priceModifier ?? 0) +
+        [...options.values()].flat().reduce((sum, value) => sum + value.priceModifier, 0)) *
+      quantity
+    : 0;
+  useEffect(() => {
+    let mounted = true;
+    void favoritesService.isFavorite(itemId).then((value) => {
+      if (mounted) setFavorite(value);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [itemId]);
+  const retry = () => {
+    void menu.refetch();
+    void detail.refetch();
+  };
+  const add = async () => {
+    if (!item || pendingRef.current || isOffline || selectionError) return;
+    pendingRef.current = true;
+    setPending(true);
+    setSubmitError(null);
+    const requestedStore = selectedStoreId;
+    try {
+      const fresh = await menu.refetch();
+      if (!alive.current || storeRef.current !== requestedStore) return;
+      if (fresh.isError || !fresh.data)
+        throw new Error('Could not check current availability. Retry before adding.');
+      const current = fresh.data.find((value) => value.id === itemId);
+      if (!current) throw new Error('This dish is no longer available at this store.');
+      const currentVariant = current.variants?.find((value) => value.id === variantId);
+      const validation = validateSelection(current, eligible, currentVariant, options);
+      if (validation) throw new Error(validation);
+      // Rebind selected IDs to latest option prices; never add stale modifier values.
+      const currentOptions = new Map<string, CustomizationOption[]>();
+      for (const [groupId, chosen] of options) {
+        const group = current.customizations?.find((value) => value.id === groupId);
+        currentOptions.set(
+          groupId,
+          chosen.map((value) => group!.options.find((option) => option.id === value.id)!),
+        );
+      }
+      addItem(current, quantity, currentVariant, currentOptions);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      navigation.navigate('Cart');
+    } catch (error) {
+      if (alive.current)
+        setSubmitError(error instanceof Error ? error.message : 'Could not add this dish. Retry.');
+    } finally {
+      pendingRef.current = false;
+      if (alive.current) setPending(false);
+    }
+  };
+  const saveFavorite = async () => {
+    if (!item || savingFavorite) return;
+    setSavingFavorite(true);
+    try {
+      const value = await favoritesService.toggle(item);
+      if (alive.current) setFavorite(value);
+      if (user?.id) void favoritesService.syncToCustomer(user.id);
+    } catch {
+      if (alive.current) setSubmitError('Could not save this dish. Try again.');
+    } finally {
+      if (alive.current) setSavingFavorite(false);
+    }
+  };
+  const back = (
+    <Pressable
+      style={[styles.icon, { backgroundColor: theme.colors.surface1 }]}
+      onPress={() => navigation.goBack()}
+      accessibilityRole="button"
+      accessibilityLabel="Back to menu"
+    >
+      <Ionicons name="arrow-back" size={24} color={theme.colors.text1} />
+    </Pressable>
+  );
+  if (!item)
+    return (
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.bg, paddingTop: insets.top }]}
       >
-        {/* Item Info */}
-        <View style={styles.itemInfo}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.itemName, { color: theme.colors.text1 }]}>
-              {menuItem.name}
-            </Text>
-            {menuItem.dietaryInfo?.includes('VEGETARIAN') && (
-              <View style={[styles.vegBadge, { borderColor: theme.colors.semantic.success }]}>
-                <View style={[styles.vegDot, { backgroundColor: theme.colors.semantic.success }]} />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.metaRow}>
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#F59E0B" />
-              <Text style={[styles.rating, { color: theme.colors.text1 }]}>
-                {menuItem.rating}
-              </Text>
-              <Text style={[styles.reviewCount, { color: theme.colors.text2 }]}>
-                ({menuItem.reviewCount} reviews)
-              </Text>
-            </View>
-            <Text style={[styles.prepTime, { color: theme.colors.text2 }]}>
-              <Ionicons name="time-outline" size={14} /> {menuItem.preparationTime} min
-            </Text>
-          </View>
-
-          <Text style={[styles.description, { color: theme.colors.text2 }]}>
-            {menuItem.description}
-          </Text>
-
-          <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: isDark ? '#FFD000' : theme.colors.text1 }]}>
-              {formatPrice(menuItem.discountedPrice || menuItem.basePrice)}
-            </Text>
-            {menuItem.discountedPrice && (
-              <>
-                <Text style={[styles.originalPrice, { color: theme.colors.text3 }]}>
-                  {formatPrice(menuItem.basePrice)}
-                </Text>
-                <Badge
-                  label={`${Math.round((1 - menuItem.discountedPrice / menuItem.basePrice) * 100)}% OFF`}
-                  variant="success"
-                  size="sm"
-                />
-              </>
-            )}
+        {back}
+        <MenuNotice
+          title={
+            !selectedStoreId
+              ? 'Choose a store first'
+              : menu.isLoading || detail.isLoading
+                ? 'Loading item details…'
+                : menu.isError || detail.isError
+                  ? 'Failed to load item'
+                  : 'Dish unavailable at this store'
+          }
+          loading={menu.isLoading || detail.isLoading}
+          detail={menu.error?.message || detail.error?.message}
+          onRetry={retry}
+          pending={menu.isFetching || detail.isFetching}
+        />
+      </View>
+    );
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[styles.container, { backgroundColor: theme.colors.bg }]}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: 16 }}
+      >
+        <View>
+          <MenuDishImage
+            name={item.name}
+            imageUrl={item.imageUrl}
+            style={{ width, height: Math.min(width * 0.78, 320) }}
+          />
+          <View style={[styles.heroControls, { top: insets.top + 8 }]}>
+            {back}
+            <Pressable
+              style={[styles.icon, { backgroundColor: theme.colors.surface1 }]}
+              accessibilityRole="button"
+              accessibilityLabel={favorite ? 'Remove from saved' : 'Save dish'}
+              accessibilityState={{
+                selected: favorite,
+                busy: savingFavorite,
+                disabled: savingFavorite,
+              }}
+              disabled={savingFavorite}
+              onPress={() => {
+                void saveFavorite();
+              }}
+            >
+              <Ionicons
+                name={favorite ? 'heart' : 'heart-outline'}
+                size={24}
+                color={theme.colors.text1}
+              />
+            </Pressable>
           </View>
         </View>
-
-        {/* Variants */}
-        {menuItem.variants.length > 0 && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-              Size
+        <View style={styles.content}>
+          <View style={styles.row}>
+            <Text accessibilityRole="header" style={[styles.title, { color: theme.colors.text1 }]}>
+              {item.name}
             </Text>
-            <View style={styles.variantsContainer}>
-              {menuItem.variants.map((variant) => (
-                <TouchableOpacity
-                  key={variant.id}
-                  style={[
-                    styles.variantOption,
-                    {
-                      backgroundColor: selectedVariant?.id === variant.id
-                        ? `${'#FFD000'}15`
-                        : theme.colors.surface2,
-                      borderColor: selectedVariant?.id === variant.id
-                        ? '#FFD000'
-                        : 'transparent',
-                    },
-                  ]}
-                  onPress={() => handleVariantSelect(variant)}
-                >
-                  <Text
+            <Text style={[styles.price, { color: theme.colors.text1 }]}>
+              {money(item.discountedPrice ?? item.basePrice)}
+            </Text>
+          </View>
+          <Text style={[styles.body, { color: theme.colors.text2 }]}>{item.description}</Text>
+          <AllergenLabels item={item} />
+          {item.allergensDeclared !== true && (
+            <Text style={[styles.meta, { color: theme.colors.warning }]}>
+              Ask the store before ordering if you have an allergy. Cross-contact may occur.
+            </Text>
+          )}
+          <View style={styles.wrap}>
+            {(item.dietaryInfo ?? []).map((value) => (
+              <Text key={value} style={[styles.meta, { color: theme.colors.success }]}>
+                {formatCategoryLabel(value)}
+              </Text>
+            ))}
+          </View>
+          <CachedMenuNotice
+            offline={isOffline}
+            failed={menu.isError}
+            updatedAt={menu.dataUpdatedAt}
+            onRetry={retry}
+            pending={menu.isFetching}
+          />
+          {!!item.variants?.length && (
+            <View style={[styles.section, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
+                Choose a size · Required
+              </Text>
+              <View style={styles.wrap}>
+                {item.variants.map((value) => (
+                  <Pressable
+                    key={value.id}
+                    disabled={pending || value.isAvailable === false}
                     style={[
-                      styles.variantName,
+                      styles.size,
                       {
-                        color: selectedVariant?.id === variant.id
-                          ? '#FFD000'
-                          : theme.colors.text1,
+                        backgroundColor:
+                          variantId === value.id ? theme.colors.selection : theme.colors.surface1,
+                        borderColor: theme.colors.border,
                       },
                     ]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: variantId === value.id, disabled: pending || value.isAvailable === false }}
+                    accessibilityLabel={`${value.name}, ${money((item.discountedPrice ?? item.basePrice) + value.priceModifier)}`}
+                    onPress={() => {
+                      setVariantId(value.id);
+                      setSubmitError(null);
+                    }}
                   >
-                    {variant.name}
-                  </Text>
-                  {variant.priceModifier > 0 && (
-                    <Text style={[styles.variantPrice, { color: theme.colors.text2 }]}>
-                      +{formatPrice(variant.priceModifier)}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Customizations */}
-        {menuItem.customizations.map((customization) => (
-          <View key={customization.id} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-                {customization.name}
-              </Text>
-              {customization.required && (
-                <Badge label="Required" variant="error" size="sm" />
-              )}
-              {!customization.required && customization.maxSelections > 1 && (
-                <Text style={[styles.maxText, { color: theme.colors.text2 }]}>
-                  Max {customization.maxSelections}
-                </Text>
-              )}
-            </View>
-            <View style={styles.optionsContainer}>
-              {customization.options.map((option) => {
-                const isSelected = selectedOptions
-                  .get(customization.id)
-                  ?.some((o) => o.id === option.id);
-                return (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.optionRow,
-                      { borderBottomColor: theme.colors.border },
-                    ]}
-                    onPress={() =>
-                      handleOptionToggle(customization.id, option, customization.maxSelections)
-                    }
-                  >
-                    <View style={styles.optionInfo}>
-                      <View
-                        style={[
-                          customization.maxSelections === 1 ? styles.radioOuter : styles.checkboxOuter,
-                          {
-                            borderColor: isSelected
-                              ? '#FFD000'
-                              : theme.colors.text3,
-                          },
-                        ]}
-                      >
-                        {isSelected && (
-                          <View
-                            style={[
-                              customization.maxSelections === 1 ? styles.radioInner : styles.checkboxInner,
-                              { backgroundColor: '#FFD000' },
-                            ]}
-                          >
-                            {customization.maxSelections > 1 && (
-                              <Ionicons name="checkmark" size={12} color="#FFF" />
-                            )}
-                          </View>
-                        )}
-                      </View>
-                      <Text style={[styles.optionName, { color: theme.colors.text1 }]}>
-                        {option.name}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.body, { color: theme.colors.text1 }]}>{value.name}{value.isAvailable === false ? ' · Unavailable' : ''}</Text>
+                      <Text style={[styles.meta, { color: theme.colors.text2 }]}>
+                        {money((item.discountedPrice ?? item.basePrice) + value.priceModifier)}
                       </Text>
                     </View>
-                    {option.priceModifier > 0 && (
-                      <Text style={[styles.optionPrice, { color: theme.colors.text2 }]}>
-                        +{formatPrice(option.priceModifier)}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        ))}
-
-        {/* Dietary Badges */}
-        {menuItem.dietaryInfo && menuItem.dietaryInfo.length > 0 && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text1, fontFamily: 'PlusJakartaSans-SemiBold' }]}>
-              Dietary Info
-            </Text>
-            <View style={styles.dietaryBadgesRow}>
-              {menuItem.dietaryInfo.map((d) => {
-                const dotColor =
-                  d === 'VEGAN' ? '#7B1FA2' :
-                  d === 'VEGETARIAN' ? '#22C55E' :
-                  d === 'NON_VEGETARIAN' ? '#FF4444' : '#A0A0A0';
-                const label =
-                  d === 'VEGAN' ? 'Vegan' :
-                  d === 'VEGETARIAN' ? 'Vegetarian' :
-                  d === 'NON_VEGETARIAN' ? 'Non-Vegetarian' :
-                  d === 'JAIN' ? 'Jain' :
-                  d === 'HALAL' ? 'Halal' :
-                  d === 'GLUTEN_FREE' ? 'Gluten-Free' :
-                  d === 'DAIRY_FREE' ? 'Dairy-Free' : d;
-                return (
-                  <View key={d} style={[styles.dietaryBadge, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface2 }]}>
-                    <View style={[styles.dietaryDot, { backgroundColor: dotColor }]} />
-                    <Text style={[styles.dietaryBadgeText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Medium' }]}>
-                      {label}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {/* Allergen Information */}
-        {menuItem.allergensDeclared && menuItem.allergens && menuItem.allergens.length > 0 && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text1, fontFamily: 'PlusJakartaSans-SemiBold' }]}>
-              Contains Allergens
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing[2] }}>
-              <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-                {(menuItem.allergens as AllergenType[]).map((allergen) => (
-                  <View key={allergen} style={[styles.allergenChip, { borderColor: '#A0A0A0', backgroundColor: theme.colors.surface1 }]}>
-                    <Text style={[styles.allergenChipText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Medium' }]}>
-                      {ALLERGEN_LABELS[allergen] ?? allergen}
-                    </Text>
-                  </View>
+                    <Ionicons
+                      name={variantId === value.id ? 'radio-button-on' : 'radio-button-off'}
+                      size={22}
+                      color={theme.colors.text1}
+                    />
+                  </Pressable>
                 ))}
               </View>
-            </ScrollView>
-          </View>
-        )}
-        {menuItem.allergensDeclared && (!menuItem.allergens || menuItem.allergens.length === 0) && (
-          <View style={styles.section}>
-            <View style={[styles.allergenWarning, { backgroundColor: theme.colors.surface2, borderColor: '#22C55E' }]}>
-              <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-              <Text style={[styles.allergenWarningText, { color: theme.colors.text2, fontFamily: 'PlusJakartaSans-Regular' }]}>
-                Allergen-free — no major allergens declared
+            </View>
+          )}
+          {(item.customizations ?? []).map((group) => (
+            <View key={group.id} style={[styles.section, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
+                {group.name} · {group.required ? 'Required' : 'Optional'}
+              </Text>
+              <Text style={[styles.meta, { color: theme.colors.text2 }]}>
+                Choose {group.maxSelections === 1 ? 'one' : `up to ${group.maxSelections}`}
+              </Text>
+              {group.options.map((option) => {
+                const chosen = options.get(group.id) ?? [];
+                const checked = chosen.some((value) => value.id === option.id);
+                const disabled =
+                  pending ||
+                  (option.isAvailable === false && !checked) ||
+                  (!checked && group.maxSelections !== 1 && chosen.length >= group.maxSelections);
+                return (
+                  <Pressable
+                    key={option.id}
+                    accessibilityRole={group.maxSelections === 1 ? 'radio' : 'checkbox'}
+                    accessibilityState={{ checked, disabled }}
+                    accessibilityLabel={`${option.name}, ${money(option.priceModifier)}`}
+                    disabled={disabled}
+                    style={[styles.option, { opacity: disabled ? 0.5 : 1 }]}
+                    onPress={() => {
+                      setOptions((previous) =>
+                        new Map(previous).set(
+                          group.id,
+                          toggleOption(previous.get(group.id) ?? [], option, group.maxSelections),
+                        ),
+                      );
+                      setSubmitError(null);
+                    }}
+                  >
+                    <Ionicons
+                      name={checked ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={theme.colors.text1}
+                    />
+                    <Text style={[styles.body, { flex: 1, color: theme.colors.text1 }]}>
+                      {option.name}
+                    </Text>
+                    <Text style={[styles.body, { color: theme.colors.text1 }]}>
+                      {option.priceModifier > 0 ? '+' : ''}
+                      {money(option.priceModifier)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+          {!!item.nutritionalInfo && (
+            <View style={[styles.section, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>Nutrition</Text>
+              <Text style={[styles.body, { color: theme.colors.text2 }]}>
+                {item.nutritionalInfo.calories} kcal · Protein {item.nutritionalInfo.protein}g ·
+                Carbs {item.nutritionalInfo.carbs}g · Fat {item.nutritionalInfo.fat}g
               </Text>
             </View>
-          </View>
-        )}
-
-        {/* Nutritional Info */}
-        {menuItem.nutritionalInfo && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text1 }]}>
-              Nutritional Info
-            </Text>
-            <View style={styles.nutritionGrid}>
-              {[
-                { label: 'Calories', value: `${menuItem.nutritionalInfo.calories} kcal` },
-                { label: 'Protein', value: `${menuItem.nutritionalInfo.protein}g` },
-                { label: 'Carbs', value: `${menuItem.nutritionalInfo.carbs}g` },
-                { label: 'Fat', value: `${menuItem.nutritionalInfo.fat}g` },
-              ].map((item) => (
-                <View
-                  key={item.label}
-                  style={[styles.nutritionItem, { backgroundColor: theme.colors.surface2 }]}
-                >
-                  <Text style={[styles.nutritionValue, { color: theme.colors.text1 }]}>
-                    {item.value}
-                  </Text>
-                  <Text style={[styles.nutritionLabel, { color: theme.colors.text2 }]}>
-                    {item.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Spacer for bottom bar */}
-        <View style={{ height: 120 }} />
+          )}
+        </View>
       </ScrollView>
-
-      {/* Bottom Bar */}
       <View
         style={[
-          styles.bottomBar,
+          styles.footer,
           {
-            backgroundColor: theme.colors.surface,
-            paddingBottom: insets.bottom + spacing[3],
-            borderTopColor: theme.colors.border,
+            paddingBottom: Math.max(insets.bottom, 12),
+            backgroundColor: theme.colors.surface1,
+            borderColor: theme.colors.border,
           },
         ]}
       >
-        <View style={styles.quantitySection}>
-          <QuantitySelector value={quantity} onChange={setQuantity} size="md" />
+        {(submitError || selectionError || isOffline) && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[styles.meta, { color: submitError ? theme.colors.error : theme.colors.text2 }]}
+          >
+            {submitError ||
+              (isOffline ? 'Connect to check availability before adding.' : selectionError)}
+          </Text>
+        )}
+        <Text style={[styles.meta, { color: theme.colors.text2 }]}>
+          Item estimate {money(estimate)} · Final total at checkout.
+        </Text>
+        <View style={styles.row}>
+          <QuantitySelector
+            disabled={pending}
+            value={quantity}
+            onChange={(value) => {
+              if (!pending) setQuantity(value);
+            }}
+          />
+          <Button
+            title="Add to cart"
+            onPress={() => {
+              void add();
+            }}
+            disabled={!!selectionError || isOffline || pending}
+            loading={pending}
+            style={{ flex: 1 }}
+          />
         </View>
-        <Button
-          title={`Add to Cart - ${formatPrice(calculateTotalPrice())}`}
-          onPress={handleAddToCart}
-          size="lg"
-          style={styles.addToCartButton}
-        />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  imageContainer: {
+  container: { flex: 1 },
+  heroControls: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: IMAGE_HEIGHT,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imageGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  headerButtons: {
-    position: 'absolute',
-    left: spacing.screenPadding,
-    right: spacing.screenPadding,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
+  icon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: 16, gap: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  title: { fontSize: 26, fontWeight: '700', flex: 1 },
+  price: { fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  body: { fontSize: 16, lineHeight: 24 },
+  meta: { fontSize: 12, lineHeight: 18 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  section: { borderTopWidth: 1, paddingTop: 16, gap: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: '600' },
+  size: {
+    minWidth: '45%',
     flex: 1,
-    marginTop: IMAGE_HEIGHT - 30,
-    borderTopLeftRadius: borderRadius.xxl,
-    borderTopRightRadius: borderRadius.xxl,
-  },
-  contentContainer: {
-    paddingTop: spacing[6],
-  },
-  itemInfo: {
-    paddingHorizontal: spacing.screenPadding,
-    marginBottom: spacing[4],
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  itemName: {
-    fontSize: typography.fontSize.title,
-    fontWeight: typography.fontWeight.bold,
-    flex: 1,
-  },
-  vegBadge: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing[2],
-  },
-  vegDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing[3],
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  rating: {
-    fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  reviewCount: {
-    fontSize: typography.fontSize.bodySm,
-  },
-  prepTime: {
-    fontSize: typography.fontSize.bodySm,
-  },
-  description: {
-    fontSize: typography.fontSize.body,
-    lineHeight: typography.lineHeight.body,
-    marginBottom: spacing[4],
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  price: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.bold,
-  },
-  originalPrice: {
-    fontSize: typography.fontSize.body,
-    textDecorationLine: 'line-through',
-  },
-  section: {
-    paddingHorizontal: spacing.screenPadding,
-    marginBottom: spacing[6],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing[3],
-  },
-  sectionTitle: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
-    marginBottom: spacing[3],
-  },
-  maxText: {
-    fontSize: typography.fontSize.bodySm,
-  },
-  variantsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  variantOption: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    borderWidth: 1.5,
-    alignItems: 'center',
-  },
-  variantName: {
-    fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.medium,
-  },
-  variantPrice: {
-    fontSize: typography.fontSize.caption,
-    marginTop: spacing[1],
-  },
-  optionsContainer: {
-    marginTop: -spacing[3],
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[4],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  optionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  checkboxOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxInner: {
-    width: 16,
-    height: 16,
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionName: {
-    fontSize: typography.fontSize.body,
-  },
-  optionPrice: {
-    fontSize: typography.fontSize.body,
-  },
-  nutritionGrid: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  nutritionItem: {
-    flex: 1,
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  nutritionValue: {
-    fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  nutritionLabel: {
-    fontSize: typography.fontSize.caption,
-    marginTop: spacing[1],
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[4],
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: spacing[4],
-    ...shadows.lg,
-  },
-  quantitySection: {
-    flexShrink: 0,
-  },
-  addToCartButton: {
-    flex: 1,
-  },
-  centerContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[6],
-  },
-  loadingText: {
-    fontSize: typography.fontSize.body,
-    marginTop: spacing[2],
-  },
-  errorTitle: {
-    fontSize: typography.fontSize.titleSm,
-    fontWeight: typography.fontWeight.semibold,
-    marginTop: spacing[4],
-    textAlign: 'center',
-  },
-  errorSubtitle: {
-    fontSize: typography.fontSize.body,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  errorButton: {
-    marginTop: spacing[6],
-  },
-  allergenWarning: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
     padding: 12,
+    borderWidth: 1,
     borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  allergenWarningText: {
-    flex: 1,
-    fontSize: typography.fontSize.caption,
-    lineHeight: 18,
-  },
-  allergenChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  allergenChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    borderWidth: 1,
-  },
-  allergenChipText: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: '600',
-  },
-  dietaryBadgesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  dietaryBadge: {
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1] + 2,
-    borderRadius: borderRadius.chip,
-    borderWidth: 1,
+    gap: 8,
   },
-  dietaryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  dietaryBadgeText: {
-    fontSize: 13,
-  },
+  option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  footer: { padding: 12, borderTopWidth: 1, gap: 8 },
 });
-
 export default ItemDetailScreen;

@@ -68,6 +68,17 @@ describe('menuApi Service', () => {
   });
 
   describe('getMenuItem', () => {
+    it('adapts server name-based variants and flat extras into selectable native options', async () => {
+      (httpClient.get as jest.Mock).mockResolvedValue({ data: {
+        id: 'pizza', basePrice: 1200,
+        variants: [{ name: 'Large', priceModifier: 400, isAvailable: false }],
+        customizations: [{ name: 'Olives', price: 200, category: 'Topping', isAvailable: true, maxQuantity: 2 }],
+      } });
+      const item = await menuApi.getMenuItem('pizza');
+      expect(item.variants[0]).toMatchObject({ id: 'Large', priceModifier: 400, isAvailable: false });
+      expect(item.customizations[0]).toMatchObject({ required: false, maxSelections: 1,
+        options: [{ id: 'Olives', name: 'Olives', priceModifier: 200, isAvailable: true }] });
+    });
     it('fetches single menu item by ID and maps price fields', async () => {
       (httpClient.get as jest.Mock).mockResolvedValue({
         data: { id: 'm1', name: 'Idly', price: 6000 },
