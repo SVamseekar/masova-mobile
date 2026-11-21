@@ -6,7 +6,7 @@
 
 | Symptom | Likely cause | Diagnostic steps | Mitigation |
 |---------|--------------|------------------|------------|
-| **Empty menu / store load failure** | Wrong store code, store closed, gateway down | 1. Check `X-Selected-Store-Id` 2. `GET /api/stores` 3. Commerce logs | Select valid store; verify Dell gateway |
+| **Empty menu / store load failure** | Wrong store code, store closed, gateway down | 1. Check `X-Selected-Store-Id` 2. `GET /api/stores` 3. Commerce logs | Select valid store; verify backend gateway |
 | **Auth 401 loop** | Expired refresh token or body field mismatch | 1. Inspect `/auth/refresh` returns `accessToken` 2. Keychain contents | Clear Keychain tokens; force login |
 | **Orders missing** | List used `userId` instead of `customer.id` | 1. `GET /customers?userId=` 2. `GET /orders?customerId=` | Use customer aggregate id only |
 | **WebSocket failed** | Legacy direct port or bad topic | 1. WS URL is `/api/ws` via gateway 2. Topics `/topic/order/{id}`, `/topic/delivery/{id}` | Fix config; REST polling still works |
@@ -18,10 +18,10 @@
 
 | Check | Command / URL |
 |-------|----------------|
-| Gateway health | `http://192.168.50.88:8080/actuator/health` (or staging equivalent) |
-| API base (dev) | `http://192.168.50.88:8080/api` |
-| WS base (dev) | `ws://192.168.50.88:8080/api/ws` |
-| Mobile smoke (Dell) | `npm run smoke:dell` |
+| Gateway health | `http://localhost:8080/actuator/health` (or staging equivalent) |
+| API base (dev) | `http://localhost:8080/api` |
+| WS base (dev) | `ws://localhost:8080/api/ws` |
+| Mobile smoke (local gateway) | `npm run smoke:dell` |
 | Quality gates | `npm run typecheck && npm run lint && npm test` |
 
 **Device (P0):** Samsung Galaxy Z Flip 5 USB · Metro **:8888** · `adb reverse tcp:8888 tcp:8888`
@@ -38,7 +38,7 @@ Execute these drills before a major release or after gateway/payment changes. Re
 
 | Step | Action | Expected |
 |------|--------|----------|
-| A1 | Stop API gateway or block device → Dell (Wi‑Fi off / wrong IP) | NetInfo reports offline |
+| A1 | Stop API gateway or block device → backend (Wi‑Fi off / wrong IP) | NetInfo reports offline |
 | A2 | Open app home / menu | Offline banner visible (if `ENABLE_OFFLINE_BANNER`) |
 | A3 | Open Menu | Loading then **error** state with Retry — **not** mock pizza list (`ENABLE_MOCK_FALLBACK` must be false in release) |
 | A4 | Open Checkout with items | Place Order CTA disabled / blocked when offline |
@@ -80,7 +80,7 @@ Execute these drills before a major release or after gateway/payment changes. Re
 Date:
 Operator:
 Build / commit:
-Environment: Dell | Staging | Prod
+Environment: Local | Staging | Prod
 Drill A: PASS / FAIL — notes
 Drill B: PASS / FAIL — notes
 Drill C: PASS / FAIL — notes
@@ -94,7 +94,7 @@ Follow-ups:
 | Issue | Fix |
 |-------|-----|
 | Metro unreachable on phone | `adb reverse tcp:8888 tcp:8888`; confirm `npm start` on 8888 |
-| Wrong backend | Check `API_BASE_URL` / `CONFIG` defaults to Dell gateway |
+| Wrong backend | Check `API_BASE_URL` / `CONFIG` defaults to local gateway |
 | Stale store header | Reselect store; verify `X-Selected-Store-Id` |
 | Cart items after store switch | Strict guard confirms + clears cart |
 

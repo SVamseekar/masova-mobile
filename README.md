@@ -33,7 +33,7 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Default backend development gateway: `http://192.168.50.88:8080/api` (Dell host).
+Default backend development gateway: `http://localhost:8080/api` (local backend).
 
 ### 3. Development Commands
 

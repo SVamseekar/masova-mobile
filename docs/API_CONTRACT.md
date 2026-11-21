@@ -9,7 +9,7 @@
 
 | Environment | Base URL | WebSocket Endpoint | Notes |
 |-------------|----------|-------------------|-------|
-| **Development** | `http://192.168.50.88:8080/api` | `ws://192.168.50.88:8080/api/ws` | Dell host via LAN / Metro port 8888 |
+| **Development** | `http://localhost:8080/api` | `ws://localhost:8080/api/ws` | Local backend / Metro port 8888 |
 | **Staging** | `https://staging-api.masova.com/api` | `wss://staging-api.masova.com/api/ws` | Staging cluster |
 | **Production** | `https://api.masova.com/api` | `wss://api.masova.com/api/ws` | Live gateway |
 
